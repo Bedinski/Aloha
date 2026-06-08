@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Surf forecast · Aloha</title>
+    <meta name="description" content="Detailed Hawaii surf forecast: search any break for surf height, swell, wind, water temp and a 7-day outlook with a quality rating." />
+    <meta name="theme-color" content="#0c4a6e" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/favicon-64.png" sizes="64x64" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="title-row">
+        <img src="./icons/favicon-64.png" alt="" class="logo" width="36" height="36" />
+        <div>
+          <h1>Surf forecast</h1>
+          <p class="tagline">Search a break · 7-day outlook</p>
+        </div>
+        <button id="refresh-btn" type="button" aria-label="Refresh">⟳</button>
+      </div>
+
+      <nav class="tabs">
+        <a href="./index.html">Dashboard</a>
+        <a href="./surf.html" class="active" aria-current="page">Surf forecast</a>
+      </nav>
+
+      <div class="search-box">
+        <label class="sr-only" for="search-input">Search a surf break</label>
+        <input id="search-input" type="search" autocomplete="off"
+               placeholder="🔎 Search a break — Pipeline, Waikiki, Honolua…" />
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+
+      <div id="status-line" class="status-line" aria-live="polite"></div>
+    </header>
+
+    <main>
+      <div id="error-banner" class="error-banner" hidden></div>
+
+      <section class="spot-head">
+        <h2 id="spot-title">—</h2>
+        <p id="spot-meta" class="muted"></p>
+      </section>
+
+      <section id="now-panel" class="card panel" aria-label="Current conditions"></section>
+
+      <section class="card panel">
+        <h2>📈 7-day surf height</h2>
+        <div id="overview-chart" class="chart-wrap"></div>
+        <p class="muted small">Open-ocean significant wave height for this spot. Breaking-face size varies with the reef/sandbar.</p>
+      </section>
+
+      <section aria-label="7-day outlook">
+        <h2 class="section-title">7-day outlook</h2>
+        <div id="day-strip" class="day-strip"></div>
+      </section>
+
+      <section id="day-detail" class="card panel"></section>
+
+      <p class="muted small disclaimer-note">
+        Ratings are a transparent heuristic from open wave/wind models (Open-Meteo) — a planning aid, not Surfline and not a safety
+        call. Hawaiian surf can be deadly; always check official advisories, posted lifeguard flags and your own ability before paddling out.
+      </p>
+    </main>
+
+    <footer class="app-footer">
+      <p>Waves &amp; weather © Open-Meteo · tides © NOAA CO-OPS · sun computed on-device. Times in Hawaii Standard Time.</p>
+    </footer>
+
+    <script type="module" src="./js/forecast.js"></script>
+  </body>
+</html>

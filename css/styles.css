@@ -202,6 +202,190 @@ main { padding: 14px 16px 8px; max-width: 760px; margin: 0 auto; }
   .reminder { background: #e6fffa; }
 }
 
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.tabs a {
+  flex: 1;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  text-decoration: none;
+  color: #f0f9ff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.tabs a.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* ---------- Search ---------- */
+.search-box { position: relative; margin-top: 12px; }
+#search-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+}
+.search-results {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.result:last-child { border-bottom: none; }
+.result:hover, .result:active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.result span { font-size: 0.78rem; }
+.no-results { padding: 14px; color: var(--muted); font-size: 0.9rem; }
+
+/* ---------- Spot header ---------- */
+.spot-head { margin-bottom: 12px; }
+.spot-head h2 { margin: 0 0 2px; font-size: 1.5rem; }
+.spot-head .level {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--brand);
+  font-size: 0.72rem;
+}
+.section-title { margin: 18px 0 10px; font-size: 1.05rem; }
+
+/* ---------- Now hero / rating badge ---------- */
+.now-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.rating-badge {
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--c, #0d9488);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 45%, transparent);
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .rating-badge { box-shadow: var(--shadow); }
+}
+.rating-score { font-size: 2rem; font-weight: 800; line-height: 1; }
+.rating-text { font-size: 0.74rem; margin-top: 3px; text-align: center; padding: 0 4px; }
+.now-face .face-big { font-size: 2rem; font-weight: 700; }
+
+.fstats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+.fstat {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .fstat { background: rgba(14, 165, 233, 0.06); }
+}
+.fstat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.fstat-val { font-size: 1.15rem; font-weight: 700; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.fstat-sub { font-size: 0.74rem; color: var(--muted); }
+
+/* ---------- Day strip ---------- */
+.day-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.day-card {
+  flex: 0 0 auto;
+  width: 116px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 10px 8px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.day-card.active { outline: 2px solid var(--accent); }
+.day-name { font-weight: 700; font-size: 0.9rem; }
+.day-date { font-size: 0.72rem; color: var(--muted); }
+.day-face { font-size: 1.05rem; font-weight: 700; margin: 6px 0; }
+.day-ampm { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--muted); }
+.day-ampm span { display: flex; align-items: center; justify-content: space-between; }
+
+/* ---------- Rating pill ---------- */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Hourly table ---------- */
+table.hourly {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+table.hourly th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  padding: 6px 6px;
+  border-bottom: 1px solid var(--line);
+}
+table.hourly td {
+  padding: 9px 6px;
+  border-bottom: 1px dashed var(--line);
+  vertical-align: top;
+}
+table.hourly tr:last-child td { border-bottom: none; }
+#day-detail h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.disclaimer-note { margin: 16px 0 0; }
+
 /* ---------- Footer ---------- */
 .app-footer {
   padding: 18px 16px max(env(safe-area-inset-bottom), 22px);

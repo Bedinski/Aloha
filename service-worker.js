@@ -7,16 +7,21 @@
 //     localStorage "last good" fallback, so we deliberately do NOT cache those
 //     API responses here (avoids serving stale data twice over).
 
-const CACHE = "aloha-shell-v1";
+const CACHE = "aloha-shell-v2";
 const SHELL = [
   "./",
   "./index.html",
+  "./surf.html",
   "./css/styles.css",
   "./js/app.js",
+  "./js/forecast.js",
   "./js/sun.js",
   "./js/tides.js",
   "./js/surf.js",
   "./js/store.js",
+  "./js/spots.js",
+  "./js/rating.js",
+  "./js/chart.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

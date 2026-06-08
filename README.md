@@ -1,8 +1,15 @@
 # 🌺 Aloha — Waikiki Tide · Sun · Surf Dashboard
 
-A tiny, fast, **offline-friendly** dashboard for a Waikiki / Oahu trip. It shows
-today's **tides**, **sunrise/sunset & golden hour**, **surf & wind**, the **UV
-index**, and the **best snorkeling windows** — all in one screen.
+A tiny, fast, **offline-friendly** companion for a Waikiki / Oahu trip. Two
+pages:
+
+1. **Dashboard** (`index.html`) — today's **tides**, **sunrise/sunset & golden
+   hour**, **surf & wind**, the **UV index**, and the **best snorkeling
+   windows**, all on one screen for the Waikiki area.
+2. **Surf forecast** (`surf.html`) — a **Surfline-style** detail view: **search
+   any of ~30 Hawaii breaks**, see current conditions with a **quality rating**,
+   **groundswell vs. windswell** breakdown, **wind relative to the break**
+   (offshore/onshore), **water temp**, and a drill-down **7-day forecast**.
 
 - **No API keys, no backend, no build step.** Pure static HTML/CSS/JS.
 - **Free to host** on GitHub Pages.
@@ -104,8 +111,13 @@ not a substitute for checking conditions and lifeguard flags on the day.
 
 ```
 index.html              # the dashboard
+surf.html               # the surf forecast page (search + 7-day)
 css/styles.css          # styling (light/dark, responsive)
-js/app.js               # orchestration, rendering, charts, snorkel scoring
+js/app.js               # dashboard orchestration & rendering
+js/forecast.js          # surf forecast page logic
+js/spots.js             # Hawaii surf-break database (coords, shore facing)
+js/rating.js            # surf-quality heuristic (wind/swell/size scoring)
+js/chart.js             # shared SVG line/area chart
 js/sun.js               # on-device sunrise/sunset/twilight math
 js/tides.js             # NOAA tide fetch + parse
 js/surf.js              # Open-Meteo marine + weather fetch
@@ -116,5 +128,19 @@ icons/                  # generated PNG icons
 tools/make_icons.py     # regenerate icons (pure stdlib)
 .github/workflows/      # optional auto-deploy to Pages
 ```
+
+## How the surf rating works
+
+A transparent, open heuristic (it's **not** Surfline's data — Surfline's API is
+private/paid). Each hour at a break is scored 0–100 from:
+
+- **Size** — bigger swell scores higher, up to a point (very big closes out).
+- **Period** — longer-period groundswell = cleaner, more powerful waves.
+- **Wind** — offshore grooms the face (good); onshore adds chop (bad). Computed
+  from the wind direction relative to the break's shore orientation.
+- **Swell window** — whether the swell direction actually reaches the break.
+
+Scores map to worded ratings (Flat → Poor → Fair → Good → Epic). It's a planning
+aid built from the free Open-Meteo wave/wind models, not a safety call.
 
 🤙 Mahalo & enjoy Waikiki!

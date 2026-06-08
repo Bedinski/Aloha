@@ -8,7 +8,8 @@
 import { fetchJSON } from "./store.js";
 
 const M_TO_FT = 3.28084;
-const FORECAST_DAYS = 3;
+const FORECAST_DAYS = 7;
+const cToF = (c) => (c == null ? null : Math.round((c * 9) / 5 + 32));
 
 // Open-Meteo returns local wall-clock ISO strings (no offset) for the
 // requested timezone. Hawaii is UTC-10 with no daylight saving.
@@ -23,8 +24,18 @@ function marineUrl(lat, lng) {
   const p = new URLSearchParams({
     latitude: lat,
     longitude: lng,
-    hourly:
-      "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_period,swell_wave_direction",
+    hourly: [
+      "wave_height",
+      "wave_direction",
+      "wave_period",
+      "swell_wave_height",
+      "swell_wave_period",
+      "swell_wave_direction",
+      "wind_wave_height",
+      "wind_wave_period",
+      "wind_wave_direction",
+      "sea_surface_temperature",
+    ].join(","),
     timezone: "Pacific/Honolulu",
     forecast_days: String(FORECAST_DAYS),
   });
@@ -35,8 +46,9 @@ function weatherUrl(lat, lng) {
   const p = new URLSearchParams({
     latitude: lat,
     longitude: lng,
-    current: "temperature_2m,wind_speed_10m,wind_direction_10m,uv_index",
-    hourly: "temperature_2m,wind_speed_10m,wind_direction_10m,uv_index",
+    current: "temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
+    hourly:
+      "temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
     timezone: "Pacific/Honolulu",
@@ -49,13 +61,9 @@ const ft = (meters) =>
   meters == null ? null : Math.round(meters * M_TO_FT * 10) / 10;
 
 /**
- * @returns {Promise<{
- *   current: {tempF:number, windMph:number, windDir:number, uv:number}|null,
- *   hourly: {time:Date, waveFt:number, wavePeriod:number, waveDir:number,
- *            swellFt:number, swellPeriod:number, swellDir:number,
- *            windMph:number, windDir:number, tempF:number, uv:number}[],
- *   fromCache: boolean, savedAt: number|null
- * }>}
+ * Merged hourly ocean + weather timeline (7 days) plus current conditions.
+ * Heights are feet, periods seconds, directions degrees (FROM), temps °F.
+ * `swell*` = groundswell train, `windWave*` = local wind sea.
  */
 export async function getOcean(lat, lng) {
   const [marine, weather] = await Promise.all([
@@ -80,8 +88,13 @@ export async function getOcean(lat, lng) {
       swellFt: ft(mh.swell_wave_height?.[i]),
       swellPeriod: mh.swell_wave_period?.[i] ?? null,
       swellDir: mh.swell_wave_direction?.[i] ?? null,
+      windWaveFt: ft(mh.wind_wave_height?.[i]),
+      windWavePeriod: mh.wind_wave_period?.[i] ?? null,
+      windWaveDir: mh.wind_wave_direction?.[i] ?? null,
+      waterTempF: cToF(mh.sea_surface_temperature?.[i]),
       windMph: wh.wind_speed_10m?.[wi] ?? null,
       windDir: wh.wind_direction_10m?.[wi] ?? null,
+      windGustMph: wh.wind_gusts_10m?.[wi] ?? null,
       tempF: wh.temperature_2m?.[wi] ?? null,
       uv: wh.uv_index?.[wi] ?? null,
     };
@@ -93,6 +106,7 @@ export async function getOcean(lat, lng) {
         tempF: c.temperature_2m,
         windMph: c.wind_speed_10m,
         windDir: c.wind_direction_10m,
+        windGustMph: c.wind_gusts_10m,
         uv: c.uv_index,
       }
     : null;

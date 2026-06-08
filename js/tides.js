@@ -9,12 +9,12 @@ import { fetchJSON } from "./store.js";
 
 const BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
 
-function buildUrl(station, interval) {
+function buildUrl(station, interval, days) {
   const p = new URLSearchParams({
     product: "predictions",
     application: "aloha-waikiki-dashboard",
     date: "today",
-    range: "48", // hours
+    range: String(days * 24), // hours
     station,
     datum: "MLLW",
     time_zone: "lst_ldt", // local station time
@@ -41,10 +41,10 @@ function parseHstString(s) {
  *   fromCache: boolean, savedAt: number|null
  * }>}
  */
-export async function getTides(station) {
+export async function getTides(station, days = 2) {
   const [hilo, hourly] = await Promise.all([
-    fetchJSON(buildUrl(station, "hilo"), `tides:hilo:${station}`),
-    fetchJSON(buildUrl(station, "h"), `tides:h:${station}`),
+    fetchJSON(buildUrl(station, "hilo", days), `tides:hilo:${station}:${days}`),
+    fetchJSON(buildUrl(station, "h", days), `tides:h:${station}:${days}`),
   ]);
 
   const highsLows = (hilo.data.predictions || []).map((p) => ({
