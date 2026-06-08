@@ -7,7 +7,9 @@ pages:
    hour**, **surf & wind**, the **UV index**, and the **best snorkeling
    windows**, all on one screen for the Waikiki area.
 2. **Surf forecast** (`surf.html`) — a **Surfline-style** detail view: **search
-   any of ~30 Hawaii breaks**, see current conditions with a **quality rating**,
+   35+ Hawaii breaks (incl. a dozen named Waikiki spots — Queens, Canoes,
+   Pops, Threes, Kaisers, Publics, Tongg's…)**, see current conditions with a
+   **quality rating**,
    **groundswell vs. windswell** breakdown, **wind relative to the break**
    (offshore/onshore), **water temp**, and a drill-down **7-day forecast**.
 

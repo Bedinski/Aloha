@@ -36,7 +36,11 @@ function staleLabel(savedAt) {
 }
 
 // ---------- state ----------
-let spot = getSpot(location.hash.slice(1)) || getSpot(localStorage.getItem("aloha:lastSpot")) || SPOTS[0];
+let spot =
+  getSpot(location.hash.slice(1)) ||
+  getSpot(localStorage.getItem("aloha:lastSpot")) ||
+  getSpot("canoes") ||
+  SPOTS[0];
 let ocean = null;
 let tides = null;
 let selectedDay = 0; // index into the day buckets
