@@ -1,0 +1,25 @@
+{
+  "name": "Aloha — Waikiki Tide · Sun · Surf",
+  "short_name": "Aloha",
+  "description": "Offline-friendly Waikiki dashboard: tides, sunrise/sunset, surf, UV and the best snorkeling windows.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c4a6e",
+  "theme_color": "#0c4a6e",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
