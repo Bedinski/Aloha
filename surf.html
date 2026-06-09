@@ -13,32 +13,38 @@
   </head>
   <body>
     <header class="app-header">
-      <div class="title-row">
-        <img src="./icons/favicon-64.png" alt="" class="logo" width="36" height="36" />
-        <div>
-          <h1>Surf forecast</h1>
-          <p class="tagline">Search a break · 7-day outlook</p>
+      <div class="hero">
+        <img class="hero-img" src="./images/hero.png"
+             alt="Waikiki sunset with palm trees, the setting sun over the ocean, and Diamond Head" />
+        <button id="refresh-btn" class="hero-refresh" type="button" aria-label="Refresh">⟳</button>
+        <div class="hero-text">
+          <img src="./icons/favicon-64.png" alt="" class="logo" width="40" height="40" />
+          <div>
+            <h1>Surf forecast</h1>
+            <p class="tagline">Search a break · 7-day outlook</p>
+          </div>
         </div>
-        <button id="refresh-btn" type="button" aria-label="Refresh">⟳</button>
       </div>
 
-      <nav class="tabs">
-        <a href="./index.html">Dashboard</a>
-        <a href="./surf.html" class="active" aria-current="page">Surf forecast</a>
-      </nav>
+      <div class="toolbar">
+        <nav class="tabs">
+          <a href="./index.html">Dashboard</a>
+          <a href="./surf.html" class="active" aria-current="page">Surf forecast</a>
+        </nav>
 
-      <div class="search-box">
-        <label class="sr-only" for="search-input">Search a surf break</label>
-        <input id="search-input" type="search" autocomplete="off"
-               placeholder="🔎 Search a break — Pipeline, Waikiki, Honolua…" />
-        <div id="search-results" class="search-results" hidden></div>
+        <div class="search-box">
+          <label class="sr-only" for="search-input">Search a surf break</label>
+          <input id="search-input" type="search" autocomplete="off"
+                 placeholder="🔎 Search a break — Pipeline, Waikiki, Honolua…" />
+          <div id="search-results" class="search-results" hidden></div>
+        </div>
+
+        <div id="status-line" class="status-line" aria-live="polite"></div>
+
+        <svg class="header-wave" viewBox="0 0 1200 30" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0,30 L0,16 C150,3 300,1 450,13 C600,26 760,28 900,13 C1030,2 1130,4 1200,12 L1200,30 Z" />
+        </svg>
       </div>
-
-      <div id="status-line" class="status-line" aria-live="polite"></div>
-
-      <svg class="header-wave" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0,34 L0,20 C150,4 300,2 450,16 C600,30 760,32 900,16 C1030,3 1130,6 1200,15 L1200,34 Z" />
-      </svg>
     </header>
 
     <main>
