@@ -58,10 +58,12 @@ python3 -m http.server 8000
 npx serve .
 ```
 
-Re-generate the app icons (optional — they're committed already):
+Re-generate the artwork (optional — committed already): the app icons and the
+Waikiki sunset hero image are drawn programmatically, no Pillow needed:
 
 ```bash
-python3 tools/make_icons.py
+python3 tools/make_icons.py    # icons/
+python3 tools/make_images.py   # images/hero.png
 ```
 
 ---
