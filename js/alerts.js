@@ -14,12 +14,19 @@ const fmtTime = (d) =>
   d == null ? "" : d.toLocaleString("en-US", { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
 
 // Match an alert's areaDesc to an island. Statewide/severe alerts show anyway.
+// Keyed by an ASCII-normalised island name (see canonIsland) so the ʻokina in
+// "Hawaiʻi"/"Kauaʻi" can't cause a mismatch. Tokens are island-SPECIFIC:
+// generic words like "windward"/"leeward"/"north shore" are intentionally
+// avoided because they also appear in other islands' marine-zone names.
 const ISLAND_RE = {
-  Oahu: /oahu|honolulu|waikiki|waianae|ko.?olau|kaiwi|mamala|kaena|\bewa\b|kailua|kaneohe|north shore|windward|leeward/i,
-  Maui: /maui|moloka|lana.?i|kahoolawe|maalaea|\bhana\b|kahului|lahaina|kihei/i,
-  "Kauaʻi": /kaua|niihau|ni.ihau|hanalei|lihue|poipu|na pali|napali/i,
-  "Hawaiʻi": /big island|hawaii island|\bkona\b|hilo|kohala|\bpuna\b|ka.u\b|south point|saddle|waikoloa|mauna/i,
+  oahu: /oahu|honolulu|waikiki|waianae|ko.?olau|kaiwi|mamala|kaena|\bewa\b|kailua|kaneohe/i,
+  maui: /maui|moloka|lana.?i|kahoolawe|maalaea|\bhana\b|kahului|lahaina|kihei/i,
+  kauai: /kaua|niihau|ni.ihau|hanalei|lihue|poipu|na ?pali/i,
+  hawaii: /big island|hawaii island|\bkona\b|hilo|kohala|\bpuna\b|ka.u\b|south point|saddle|waikoloa/i,
 };
+
+// Strip the ʻokina/diacritics: "Hawaiʻi" -> "hawaii", "Kauaʻi" -> "kauai".
+const canonIsland = (s) => (s || "").normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
 
 const SEV_RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0 };
 const SEV_COLOR = {
@@ -49,10 +56,16 @@ const shorten = (areaDesc = "") => {
   return parts.length <= 2 ? parts.join(", ") : `${parts.slice(0, 2).join(", ")} +${parts.length - 2} more`;
 };
 
-/** @returns {Promise<{list:Array, fromCache:boolean}>} — never throws. */
+// The alerts feed is statewide and island-independent, so cache it briefly in
+// memory — switching spots then just re-filters instead of re-hitting the API.
+let memo = null; // { at:number, list:Array }
+const TTL_MS = 5 * 60 * 1000;
+
+/** @returns {Promise<{list:Array}>} — never throws. */
 export async function getAlerts() {
+  if (memo && Date.now() - memo.at < TTL_MS) return { list: memo.list };
   try {
-    const { data, fromCache } = await fetchJSON(URL, "alerts:HI");
+    const { data } = await fetchJSON(URL, "alerts:HI");
     const list = (data.features || []).map((f) => {
       const p = f.properties || {};
       return {
@@ -64,18 +77,28 @@ export async function getAlerts() {
         expires: p.ends || p.expires ? new Date(p.ends || p.expires) : null,
       };
     });
-    return { list, fromCache };
+    memo = { at: Date.now(), list };
+    return { list };
   } catch {
-    return { list: [], fromCache: false };
+    return { list: memo ? memo.list : [] };
   }
 }
 
-/** Keep alerts relevant to an island (plus any Extreme/Severe), worst first. */
+/** Keep alerts relevant to an island (plus any Extreme/Severe), worst first,
+ *  de-duplicated by event (NWS often emits one feature per zone), capped. */
 export function filterAlerts(list, island) {
-  const re = ISLAND_RE[island] || ISLAND_RE.Oahu;
-  return list
+  const re = ISLAND_RE[canonIsland(island)] || ISLAND_RE.oahu;
+  const relevant = list
     .filter((a) => re.test(a.areaDesc) || a.severity === "Extreme" || a.severity === "Severe")
     .sort((a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0));
+  const seen = new Set();
+  const deduped = [];
+  for (const a of relevant) {
+    if (seen.has(a.event)) continue;
+    seen.add(a.event);
+    deduped.push(a);
+  }
+  return deduped.slice(0, 6);
 }
 
 /** HTML for the alerts banner (empty string when there are none). */

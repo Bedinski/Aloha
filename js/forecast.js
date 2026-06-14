@@ -6,8 +6,7 @@ import { getTides } from "./tides.js";
 import { getSunTimes } from "./sun.js";
 import { surfQuality, surfFaceRange, compass, windRelation } from "./rating.js";
 import { lineChart } from "./chart.js";
-import { getAlerts, filterAlerts, alertsHtml } from "./alerts.js";
-import { getBuoy, buoyHtml, BUOYS } from "./buoy.js";
+import { renderAlerts, renderBuoy } from "./feeds.js";
 
 const TZ = "Pacific/Honolulu";
 const $ = (s) => document.querySelector(s);
@@ -279,31 +278,8 @@ async function load() {
   }
 
   // Independent feeds — scoped to the selected spot's island/buoy.
-  loadAlerts(spot.island);
-  loadBuoy(spot.buoy);
-}
-
-// NWS watches/warnings/advisories for the spot's island.
-async function loadAlerts(island) {
-  const el = $("#alerts");
-  if (!el) return;
-  const { list } = await getAlerts();
-  el.innerHTML = alertsHtml(filterAlerts(list, island));
-}
-
-// Latest real observed swell at the nearest CDIP/PacIOOS buoy (Oʻahu only).
-async function loadBuoy(id) {
-  const el = $("#buoy");
-  if (!el) return;
-  const panel = document.getElementById("buoy-panel");
-  if (!id || !BUOYS[id]) { if (panel) panel.hidden = true; return; }
-  if (panel) panel.hidden = false;
-  el.innerHTML = `<p class="muted small">Loading buoy…</p>`;
-  try {
-    el.innerHTML = buoyHtml(await getBuoy(id), id);
-  } catch {
-    el.innerHTML = `<p class="muted small">Buoy data unavailable right now.</p>`;
-  }
+  renderAlerts(spot.island);
+  renderBuoy(spot.buoy);
 }
 
 function init() {
