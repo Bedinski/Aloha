@@ -52,9 +52,17 @@
     <main>
       <div id="error-banner" class="error-banner" hidden></div>
 
+      <section id="alerts" class="alerts" aria-live="polite" aria-label="Active advisories"></section>
+
       <section id="now-cards" class="now-cards" aria-label="Current conditions"></section>
 
       <div class="grid">
+        <section class="card panel" id="buoy-panel">
+          <h2>🛟 Live buoy</h2>
+          <div id="buoy"></div>
+          <p class="muted small">Real observed swell at the nearest Waverider buoy — ground truth alongside the model forecast.</p>
+        </section>
+
         <section class="card panel">
           <h2>☀️ Sun</h2>
           <div id="sun-card" class="kv-list"></div>

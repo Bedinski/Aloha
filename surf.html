@@ -50,12 +50,20 @@
     <main>
       <div id="error-banner" class="error-banner" hidden></div>
 
+      <section id="alerts" class="alerts" aria-live="polite" aria-label="Active advisories"></section>
+
       <section class="spot-head">
         <h2 id="spot-title">—</h2>
         <p id="spot-meta" class="muted"></p>
       </section>
 
       <section id="now-panel" class="card panel" aria-label="Current conditions"></section>
+
+      <section class="card panel" id="buoy-panel">
+        <h2>🛟 Live buoy</h2>
+        <div id="buoy"></div>
+        <p class="muted small">Real observed swell at the nearest Waverider buoy.</p>
+      </section>
 
       <section class="card panel">
         <h2>📈 7-day surf height</h2>

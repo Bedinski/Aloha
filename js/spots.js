@@ -78,6 +78,17 @@ export const SPOTS = [
   { id: "poipu", name: "Poʻipū (PK's)", island: "Kauaʻi", region: "Kauai", lat: 21.8730, lng: -159.4580, facing: 190, swellWindow: [150, 230], station: 1611400, level: "Intermediate" },
 ];
 
+// Nearest real-time wave buoy (CDIP station_id) per region — see buoy.js.
+// Oʻahu is well covered; neighbour islands have no assigned buoy (panel hides).
+const REGION_BUOY = {
+  Waikiki: "233", // Pearl Harbor / Māmala Bay (south shore)
+  "South Shore": "233",
+  "North Shore": "106", // Waimea Bay
+  "East Side": "098", // Mokapu Point
+  "West Side": "106", // catches the same NW swells
+};
+for (const s of SPOTS) s.buoy = REGION_BUOY[s.region] || null;
+
 /** Case-insensitive search over name / region / island. Returns all on empty. */
 export function searchSpots(query) {
   const q = (query || "").trim().toLowerCase();

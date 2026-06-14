@@ -498,3 +498,25 @@ table.hourly tr:last-child td { border-bottom: none; }
     linear-gradient(90deg, var(--coral), var(--accent)) border-box;
   border: 1px solid transparent;
 }
+
+/* ---------- Alerts banner ---------- */
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alerts:not(:empty) { margin-bottom: 14px; }
+.alert {
+  border-left: 5px solid var(--ac, var(--coral));
+  background: color-mix(in srgb, var(--ac) 12%, var(--card));
+  border-radius: 10px;
+  padding: 9px 12px;
+  box-shadow: var(--shadow);
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .alert { background: var(--card); }
+}
+.alert-event { font-weight: 700; font-size: 0.92rem; }
+.alert-area { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+/* ---------- Live buoy ---------- */
+.buoy-reading { display: flex; flex-direction: column; gap: 2px; }
+.buoy-big { font-size: 1.7rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.buoy-big span { font-size: 0.95rem; font-weight: 600; color: var(--muted); margin-left: 8px; }
+.buoy-sub { font-size: 0.8rem; color: var(--muted); }

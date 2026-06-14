@@ -4,6 +4,8 @@ import { getSunTimes, dayLength } from "./sun.js";
 import { getTides } from "./tides.js";
 import { getOcean } from "./surf.js";
 import { lineChart } from "./chart.js";
+import { getAlerts, filterAlerts, alertsHtml } from "./alerts.js";
+import { getBuoy, buoyHtml, BUOYS } from "./buoy.js";
 
 // ---------------------------------------------------------------------------
 // Locations — all near Waikiki / south & east shore of Oahu, which the
@@ -345,6 +347,33 @@ async function load() {
     b.textContent =
       "Couldn't reach the tide/surf services and no cached data is available yet. Check your connection and tap Refresh. (Sun times above are computed offline and remain accurate.)";
     console.error(err);
+  }
+
+  // Independent feeds — never block or break the main dashboard.
+  loadAlerts("Oahu");
+  loadBuoy("233"); // Pearl Harbor / Māmala Bay (south-shore reference)
+}
+
+// NWS watches/warnings/advisories for the island.
+async function loadAlerts(island) {
+  const el = $("#alerts");
+  if (!el) return;
+  const { list } = await getAlerts();
+  el.innerHTML = alertsHtml(filterAlerts(list, island));
+}
+
+// Latest real observed swell at the nearest CDIP/PacIOOS buoy.
+async function loadBuoy(id) {
+  const el = $("#buoy");
+  if (!el) return;
+  const panel = document.getElementById("buoy-panel");
+  if (!id || !BUOYS[id]) { if (panel) panel.hidden = true; return; }
+  if (panel) panel.hidden = false;
+  el.innerHTML = `<p class="muted small">Loading buoy…</p>`;
+  try {
+    el.innerHTML = buoyHtml(await getBuoy(id), id);
+  } catch {
+    el.innerHTML = `<p class="muted small">Buoy data unavailable right now.</p>`;
   }
 }
 

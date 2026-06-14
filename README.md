@@ -25,6 +25,8 @@ Data sources (all free + CORS-enabled, fetched directly from your phone):
 | --- | --- |
 | Tides (high/low + curve) | [NOAA CO-OPS](https://api.tidesandcurrents.noaa.gov/api/prod/) — Honolulu station 1612340 |
 | Waves, swell, wind, UV, air temp | [Open-Meteo](https://open-meteo.com/) Marine + Weather APIs |
+| Live wave buoys (real observed swell) | [CDIP](https://cdip.ucsd.edu/) via [PacIOOS ERDDAP](https://pae-paha.pacioos.hawaii.edu/erddap/) `cdip_wave_agg` — Waimea (51201), Pearl Harbor/Māmala (51211), Mokapu (51202). Fetched via JSONP (ERDDAP CORS is off by default). |
+| Active advisories (High Surf, Rip Current, Flash Flood…) | [NWS api.weather.gov](https://www.weather.gov/documentation/services-web-alerts) `?area=HI` — keyless GeoJSON |
 | Sunrise / sunset / twilight / golden hour | Computed on-device (SunCalc algorithm) — **works with zero signal** |
 
 > ⚠️ For trip planning only — **not** for navigation or safety decisions.
@@ -126,6 +128,8 @@ js/sun.js               # on-device sunrise/sunset/twilight math
 js/tides.js             # NOAA tide fetch + parse
 js/surf.js              # Open-Meteo marine + weather fetch
 js/store.js             # fetch-with-cache helper (offline fallback)
+js/alerts.js            # NWS active advisories (api.weather.gov)
+js/buoy.js              # live CDIP/PacIOOS wave-buoy readings (JSONP)
 manifest.webmanifest    # PWA metadata
 service-worker.js       # offline app-shell caching
 icons/                  # generated PNG icons
