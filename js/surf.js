@@ -28,11 +28,14 @@ function marineUrl(lat, lng) {
       "wave_height",
       "wave_direction",
       "wave_period",
+      "wave_peak_period",
       "swell_wave_height",
       "swell_wave_period",
+      "swell_wave_peak_period",
       "swell_wave_direction",
       "wind_wave_height",
       "wind_wave_period",
+      "wind_wave_peak_period",
       "wind_wave_direction",
       "sea_surface_temperature",
     ].join(","),
@@ -60,9 +63,15 @@ function weatherUrl(lat, lng) {
 const ft = (meters) =>
   meters == null ? null : Math.round(meters * M_TO_FT * 10) / 10;
 
+// Periods: prefer PEAK period (Tp, the surf-relevant figure that matches the
+// CDIP buoy's waveTp); fall back to the combined peak, then the mean period,
+// since peak-period variables are only served by some Open-Meteo wave models.
+const peakOr = (...vals) => vals.find((v) => v != null) ?? null;
+
 /**
  * Merged hourly ocean + weather timeline (7 days) plus current conditions.
- * Heights are feet, periods seconds, directions degrees (FROM), temps °F.
+ * Heights are feet, periods seconds (peak where available), directions degrees
+ * (the direction waves come FROM), temps °F.
  * `swell*` = groundswell train, `windWave*` = local wind sea.
  */
 export async function getOcean(lat, lng) {
@@ -83,13 +92,13 @@ export async function getOcean(lat, lng) {
     return {
       time: parseHst(t),
       waveFt: ft(mh.wave_height?.[i]),
-      wavePeriod: mh.wave_period?.[i] ?? null,
+      wavePeriod: peakOr(mh.wave_peak_period?.[i], mh.wave_period?.[i]),
       waveDir: mh.wave_direction?.[i] ?? null,
       swellFt: ft(mh.swell_wave_height?.[i]),
-      swellPeriod: mh.swell_wave_period?.[i] ?? null,
+      swellPeriod: peakOr(mh.swell_wave_peak_period?.[i], mh.wave_peak_period?.[i], mh.swell_wave_period?.[i]),
       swellDir: mh.swell_wave_direction?.[i] ?? null,
       windWaveFt: ft(mh.wind_wave_height?.[i]),
-      windWavePeriod: mh.wind_wave_period?.[i] ?? null,
+      windWavePeriod: peakOr(mh.wind_wave_peak_period?.[i], mh.wind_wave_period?.[i]),
       windWaveDir: mh.wind_wave_direction?.[i] ?? null,
       waterTempF: cToF(mh.sea_surface_temperature?.[i]),
       windMph: wh.wind_speed_10m?.[wi] ?? null,

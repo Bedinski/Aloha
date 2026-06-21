@@ -13,9 +13,9 @@ const isoT = (i, sep) => {
   return `${g(p, "year")}-${g(p, "month")}-${g(p, "day")}${sep}${g(p, "hour")}:00`;
 };
 const N = 168;
-const marineHourly = { time: [], wave_height: [], wave_direction: [], wave_period: [],
-  swell_wave_height: [], swell_wave_period: [], swell_wave_direction: [],
-  wind_wave_height: [], wind_wave_period: [], wind_wave_direction: [], sea_surface_temperature: [] };
+const marineHourly = { time: [], wave_height: [], wave_direction: [], wave_period: [], wave_peak_period: [],
+  swell_wave_height: [], swell_wave_period: [], swell_wave_peak_period: [], swell_wave_direction: [],
+  wind_wave_height: [], wind_wave_period: [], wind_wave_peak_period: [], wind_wave_direction: [], sea_surface_temperature: [] };
 const wxHourly = { time: [], temperature_2m: [], wind_speed_10m: [], wind_direction_10m: [], wind_gusts_10m: [], uv_index: [] };
 const airHourly = { time: [], us_aqi: [], pm2_5: [], sulphur_dioxide: [] };
 for (let i = 0; i < N; i++) {
@@ -23,9 +23,10 @@ for (let i = 0; i < N; i++) {
   marineHourly.time.push(t);
   marineHourly.wave_height.push(0.9 + 0.4 * Math.sin(i / 7));
   marineHourly.wave_direction.push(198); marineHourly.wave_period.push(13 + 2 * Math.sin(i / 11));
+  marineHourly.wave_peak_period.push(15 + 2 * Math.sin(i / 11));
   marineHourly.swell_wave_height.push(0.8 + 0.35 * Math.sin(i / 7));
-  marineHourly.swell_wave_period.push(14); marineHourly.swell_wave_direction.push(200);
-  marineHourly.wind_wave_height.push(0.3); marineHourly.wind_wave_period.push(6); marineHourly.wind_wave_direction.push(70);
+  marineHourly.swell_wave_period.push(14); marineHourly.swell_wave_peak_period.push(16); marineHourly.swell_wave_direction.push(200);
+  marineHourly.wind_wave_height.push(0.3); marineHourly.wind_wave_period.push(6); marineHourly.wind_wave_peak_period.push(7); marineHourly.wind_wave_direction.push(70);
   marineHourly.sea_surface_temperature.push(26.4);
   wxHourly.time.push(t);
   wxHourly.temperature_2m.push(81 + 3 * Math.sin((hr - 14) / 24 * Math.PI * 2));
