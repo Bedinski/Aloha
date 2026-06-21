@@ -123,7 +123,8 @@ export function surfQuality({ waveFt, swellFt, swellPeriod, swellDir, windMph, w
 /** Significant wave height (ft) -> a Surfline-style breaking-face range. */
 export function surfFaceRange(hsFt) {
   if (hsFt == null) return { min: 0, max: 0, label: "—" };
-  const min = Math.max(0, Math.floor(hsFt));
+  if (hsFt < 0.8) return { min: 0, max: 0, label: "Flat" };
+  const min = Math.max(1, Math.floor(hsFt));
   const max = Math.max(min + 1, Math.round(hsFt * 1.5));
   return { min, max, label: `${min}–${max} ft` };
 }

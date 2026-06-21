@@ -25,8 +25,8 @@ export function jellyfishStatus(date = new Date()) {
   const windowEnd = new Date(fullRef + 10 * DAY);
 
   let risk; // high = in/at window, soon = approaching, low = otherwise
-  if (daysSinceFull >= 7.5 && daysSinceFull <= 11) risk = "high";
-  else if (daysSinceFull >= 5 && daysSinceFull < 7.5) risk = "soon";
+  if (daysSinceFull >= 8 && daysSinceFull <= 11) risk = "high";
+  else if (daysSinceFull >= 5 && daysSinceFull < 8) risk = "soon";
   else risk = "low";
 
   return { daysSinceFull, risk, windowStart, windowEnd };

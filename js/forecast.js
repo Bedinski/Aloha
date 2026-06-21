@@ -83,15 +83,18 @@ function rate(h) {
 function dayStats(hours) {
   const daylight = hours.filter((h) => hstHour(h) >= 6 && hstHour(h) <= 19 && h.waveFt != null);
   const faces = daylight.map((h) => h.waveFt);
-  const faceMin = faces.length ? Math.floor(Math.min(...faces)) : 0;
-  const faceMax = faces.length ? Math.round(Math.max(...faces) * 1.5) : 0;
+  let faceLabel = "—";
+  if (faces.length) {
+    const maxHs = Math.max(...faces);
+    if (maxHs < 0.8) faceLabel = "Flat";
+    else {
+      const lo = Math.max(1, Math.floor(Math.min(...faces)));
+      faceLabel = `${lo}–${Math.max(lo + 1, Math.round(maxHs * 1.5))} ft`;
+    }
+  }
   const am = nearestHourTo(hours, 9);
   const pm = nearestHourTo(hours, 15);
-  return {
-    faceLabel: faces.length ? `${faceMin}–${Math.max(faceMin + 1, faceMax)} ft` : "—",
-    am: am ? rate(am) : null,
-    pm: pm ? rate(pm) : null,
-  };
+  return { faceLabel, am: am ? rate(am) : null, pm: pm ? rate(pm) : null };
 }
 
 // ---------- rendering ----------
