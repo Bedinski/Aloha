@@ -664,3 +664,13 @@ input:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- Risk badge (jellyfish etc.) ---------- */
+.risk {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}

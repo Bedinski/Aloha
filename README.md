@@ -27,7 +27,9 @@ Data sources (all free + CORS-enabled, fetched directly from your phone):
 | Waves, swell, wind, UV, air temp | [Open-Meteo](https://open-meteo.com/) Marine + Weather APIs |
 | Live wave buoys (real observed swell) | [CDIP](https://cdip.ucsd.edu/) via [PacIOOS ERDDAP](https://pae-paha.pacioos.hawaii.edu/erddap/) `cdip_wave_agg` — Waimea (51201), Pearl Harbor/Māmala (51211), Mokapu (51202). Fetched via JSONP (ERDDAP CORS is off by default). |
 | Active advisories (High Surf, Rip Current, Flash Flood…) | [NWS api.weather.gov](https://www.weather.gov/documentation/services-web-alerts) `?area=HI` — keyless GeoJSON |
+| Vog / air quality (US AQI, PM2.5, SO₂) | [Open-Meteo Air-Quality API](https://open-meteo.com/en/docs/air-quality-api) — keyless |
 | Sunrise / sunset / twilight / golden hour | Computed on-device (SunCalc algorithm) — **works with zero signal** |
+| Box-jellyfish influx window (south shore) | Computed on-device from the lunar cycle (~8–10 days after a full moon) — **no network** |
 
 > ⚠️ For trip planning only — **not** for navigation or safety decisions.
 > Always check official surf, weather, and lifeguard advisories before entering
@@ -130,6 +132,10 @@ js/surf.js              # Open-Meteo marine + weather fetch
 js/store.js             # fetch-with-cache helper (offline fallback)
 js/alerts.js            # NWS active advisories (api.weather.gov)
 js/buoy.js              # live CDIP/PacIOOS wave-buoy readings (JSONP)
+js/air.js               # vog / air quality (Open-Meteo Air-Quality)
+js/jellyfish.js         # on-device box-jellyfish window (lunar cycle)
+js/feeds.js             # shared alerts + buoy rendering
+tools/ui-harness/       # headless-Chromium UI validation (CI gate)
 manifest.webmanifest    # PWA metadata
 service-worker.js       # offline app-shell caching
 icons/                  # generated PNG icons
@@ -150,5 +156,20 @@ private/paid). Each hour at a break is scored 0–100 from:
 
 Scores map to worded ratings (Flat → Poor → Fair → Good → Epic). It's a planning
 aid built from the free Open-Meteo wave/wind models, not a safety call.
+
+## Validating the UI
+
+`tools/ui-harness/` renders both pages in headless Chromium with all external
+APIs mocked, then runs an **accessibility audit** (WCAG text contrast,
+tap-target size ≥ 44px, no sub-12px fonts). It's wired into CI
+(`.github/workflows/ui-check.yml`) as a pass/fail gate on every push, and
+uploads light + dark screenshots as artifacts.
+
+```bash
+cd tools/ui-harness && npm install
+python3 -m http.server 8137 &      # serve the repo root
+node audit.mjs                     # gate: exits non-zero on a UI regression
+node shoot.mjs && DARK=1 node shoot.mjs   # screenshots → out/
+```
 
 🤙 Mahalo & enjoy Waikiki!

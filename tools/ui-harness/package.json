@@ -1,0 +1,13 @@
+{
+  "name": "aloha-ui-harness",
+  "private": true,
+  "type": "module",
+  "description": "Headless-Chromium UI validation for Aloha: screenshots + an accessibility audit (WCAG contrast, tap-target size, tiny fonts). Dev-only; not part of the shipped site.",
+  "scripts": {
+    "audit": "node audit.mjs",
+    "shoot": "node shoot.mjs"
+  },
+  "dependencies": {
+    "puppeteer": "^23.11.1"
+  }
+}

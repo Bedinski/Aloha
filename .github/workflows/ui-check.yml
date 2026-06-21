@@ -1,0 +1,59 @@
+name: UI check
+
+# Headless-Chromium accessibility/visual gate. Runs the audit (WCAG contrast,
+# tap-target size, tiny fonts) as a pass/fail check and uploads before/after
+# screenshots as artifacts. Does NOT block the Pages deploy (separate workflow).
+
+on:
+  push:
+    branches: [main, claude/exciting-keller-QOXZe]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Shared libraries Chromium needs (most are present because the runner
+      # ships Chrome; libasound's package name differs across Ubuntu releases).
+      - name: Chromium system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 \
+            libxkbcommon0 libpango-1.0-0 libcairo2 libxcomposite1 libxdamage1 libxrandr2 || true
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2 || true
+
+      - name: Install harness (downloads Chromium)
+        working-directory: tools/ui-harness
+        run: npm install --no-audit --no-fund
+
+      - name: Serve the site
+        run: |
+          python3 -m http.server 8137 &
+          for i in $(seq 1 40); do curl -sf http://localhost:8137/index.html >/dev/null && break; sleep 0.5; done
+
+      - name: Accessibility audit (gate)
+        working-directory: tools/ui-harness
+        run: node audit.mjs
+
+      - name: Screenshots (light + dark)
+        if: always()
+        working-directory: tools/ui-harness
+        run: node shoot.mjs && DARK=1 node shoot.mjs
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: tools/ui-harness/out/*.png
+          if-no-files-found: warn

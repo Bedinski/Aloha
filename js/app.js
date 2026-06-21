@@ -5,6 +5,8 @@ import { getTides } from "./tides.js";
 import { getOcean } from "./surf.js";
 import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
+import { jellyfishHtml } from "./jellyfish.js";
+import { getAir, airHtml } from "./air.js";
 
 // ---------------------------------------------------------------------------
 // Locations — all near Waikiki / south & east shore of Oahu, which the
@@ -354,6 +356,22 @@ async function load() {
   // Independent feeds — never block or break the main dashboard.
   renderAlerts("Oahu");
   renderBuoy("233"); // Pearl Harbor / Māmala Bay (south-shore reference)
+  const jelly = $("#jelly");
+  if (jelly) jelly.innerHTML = jellyfishHtml(); // on-device, no network
+  loadAir();
+}
+
+// Vog / air quality (Open-Meteo Air Quality, keyless) — independent feed.
+async function loadAir() {
+  const el = $("#air");
+  if (!el) return;
+  el.innerHTML = `<p class="muted small">Loading…</p>`;
+  try {
+    const { lat, lng } = activeCoords();
+    el.innerHTML = airHtml(await getAir(lat, lng));
+  } catch {
+    el.innerHTML = `<p class="muted small">Air quality unavailable right now.</p>`;
+  }
 }
 
 function buildLocationSelect() {
