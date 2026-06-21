@@ -116,8 +116,9 @@ function renderNow() {
   const wind = windRelation(h.windDir, spot.facing, h.windMph);
   const nextTide = tides?.highsLows.find((t) => t.time.getTime() > Date.now());
 
-  const stat = (label, val, sub = "") =>
-    `<div class="fstat"><div class="fstat-label">${label}</div><div class="fstat-val">${val}</div><div class="fstat-sub">${sub}</div></div>`;
+  const stat = (icon, label, val, sub = "", tone = "var(--accent)") =>
+    `<div class="fstat" style="--tone:${tone}"><div class="fstat-label">${icon} ${label}</div>` +
+    `<div class="fstat-val">${val}</div><div class="fstat-sub">${sub}</div></div>`;
 
   $("#now-panel").innerHTML = `
     <div class="now-hero">
@@ -131,21 +132,22 @@ function renderNow() {
       </div>
     </div>
     <div class="fstats">
-      ${stat("Primary swell", h.swellFt != null ? `${h.swellFt} ft` : "—", h.swellPeriod != null ? `${Math.round(h.swellPeriod)}s ${compass(h.swellDir)} (${Math.round(h.swellDir ?? 0)}°)` : "")}
-      ${stat("Wind swell", h.windWaveFt != null ? `${h.windWaveFt} ft` : "—", h.windWavePeriod != null ? `${Math.round(h.windWavePeriod)}s ${compass(h.windWaveDir)}` : "")}
-      ${stat("Wind", h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—", `${wind.label}${h.windGustMph != null ? ` · gust ${Math.round(h.windGustMph)}` : ""}`)}
-      ${stat("Water", h.waterTempF != null ? `${h.waterTempF}°F` : "—", h.tempF != null ? `air ${Math.round(h.tempF)}°F` : "")}
-      ${stat("Next tide", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${nextTide.heightFt.toFixed(1)} ft` : "—", nextTide ? fmtTime(nextTide.time) : "")}
-      ${stat("UV", h.uv != null ? Math.round(h.uv) : "—", "reef-safe SPF")}
+      ${stat("🌊", "Primary swell", h.swellFt != null ? `${h.swellFt} ft` : "—", h.swellPeriod != null ? `${Math.round(h.swellPeriod)}s ${compass(h.swellDir)} (${Math.round(h.swellDir ?? 0)}°)` : "", "#0d9488")}
+      ${stat("〰️", "Wind swell", h.windWaveFt != null ? `${h.windWaveFt} ft` : "—", h.windWavePeriod != null ? `${Math.round(h.windWavePeriod)}s ${compass(h.windWaveDir)}` : "", "#0891b2")}
+      ${stat("💨", "Wind", h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—", `${wind.label}${h.windGustMph != null ? ` · gust ${Math.round(h.windGustMph)}` : ""}`, "#0ea5e9")}
+      ${stat("🌡️", "Water", h.waterTempF != null ? `${h.waterTempF}°F` : "—", h.tempF != null ? `air ${Math.round(h.tempF)}°F` : "", "#f97362")}
+      ${stat("🌙", "Next tide", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${nextTide.heightFt.toFixed(1)} ft` : "—", nextTide ? fmtTime(nextTide.time) : "", "#6366f1")}
+      ${stat("🔆", "UV", h.uv != null ? Math.round(h.uv) : "—", "reef-safe SPF", "#f59e0b")}
     </div>`;
 
   // 7-day surf-height overview
   $("#overview-chart").innerHTML = lineChart({
     points: ocean.hourly.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: x.waveFt })),
     color: "#0d9488",
-    height: 130,
+    height: 140,
     nowAt: new Date(),
     xFmt: (t) => relDayLabel(new Date(t)),
+    unit: "ft",
   });
 
   return days;
@@ -211,6 +213,7 @@ function renderDayDetail(days) {
       points: hours.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: x.waveFt })),
       color: "#0284c7",
       nowAt: dayKey(dayDate) === dayKey(new Date()) ? new Date() : null,
+      unit: "ft",
     })}</div>
     <table class="hourly">
       <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th></tr></thead>

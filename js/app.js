@@ -203,15 +203,16 @@ function renderNowCards(ocean, tides) {
   const nextTide = tides.highsLows.find((t) => t.time.getTime() > Date.now());
   const uv = uvInfo(cur.uv);
 
-  const card = (label, big, sub) =>
-    `<div class="card stat"><div class="stat-label">${label}</div><div class="stat-big">${big}</div><div class="stat-sub">${sub}</div></div>`;
+  const card = (icon, label, big, sub, tone) =>
+    `<div class="card stat" style="--tone:${tone}"><div class="stat-label">${icon} ${label}</div>` +
+    `<div class="stat-big">${big}</div><div class="stat-sub">${sub}</div></div>`;
 
   $("#now-cards").innerHTML = [
-    card("Air", cur.tempF != null ? `${Math.round(cur.tempF)}°F` : "—", "Waikiki air temp"),
-    card("Surf", waterWave != null ? `${waterWave} ft` : "—", waveDesc(waterWave)),
-    card("Wind", cur.windMph != null ? `${Math.round(cur.windMph)} mph` : "—", `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`),
-    card("UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat),
-    card("Tide now", tNow != null ? `${tNow.toFixed(1)} ft` : "—", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : ""),
+    card("🌡️", "Air", cur.tempF != null ? `${Math.round(cur.tempF)}°F` : "—", "Waikiki air temp", "#f97362"),
+    card("🌊", "Surf", waterWave != null ? `${waterWave} ft` : "—", waveDesc(waterWave), "#0d9488"),
+    card("💨", "Wind", cur.windMph != null ? `${Math.round(cur.windMph)} mph` : "—", `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`, "#0ea5e9"),
+    card("🔆", "UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat, "#f59e0b"),
+    card("🌙", "Tide now", tNow != null ? `${tNow.toFixed(1)} ft` : "—", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "", "#6366f1"),
   ].join("");
 }
 
@@ -249,6 +250,7 @@ function renderTides(tides) {
     color: "#0284c7",
     nowAt: new Date(),
     markers,
+    unit: "ft",
   });
 }
 
@@ -267,6 +269,7 @@ function renderSurf(ocean) {
     points: next36.map((x) => ({ x: x.time, y: x.waveFt })),
     color: "#0d9488",
     nowAt: new Date(),
+    unit: "ft",
   });
 }
 

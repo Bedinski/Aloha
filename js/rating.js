@@ -79,16 +79,17 @@ function windowFactor(swellDir, swellWindow) {
   return edge <= 25 ? 0.7 : 0.45;
 }
 
+// Colours are chosen so WHITE text on them clears WCAG AA (contrast ≥ 4.5).
 const RATINGS = [
-  { max: 8, text: "Flat", color: "#94a3b8" },
-  { max: 22, text: "Very poor", color: "#a16207" },
-  { max: 35, text: "Poor", color: "#b45309" },
-  { max: 48, text: "Poor–Fair", color: "#ca8a04" },
-  { max: 60, text: "Fair", color: "#65a30d" },
-  { max: 72, text: "Fair–Good", color: "#16a34a" },
-  { max: 84, text: "Good", color: "#0d9488" },
-  { max: 93, text: "Very good", color: "#0891b2" },
-  { max: 101, text: "Epic", color: "#7c3aed" },
+  { max: 8, text: "Flat", color: "#64748b" },
+  { max: 22, text: "Very poor", color: "#be123c" },
+  { max: 35, text: "Poor", color: "#c2410c" },
+  { max: 48, text: "Poor–Fair", color: "#b45309" },
+  { max: 60, text: "Fair", color: "#4d7c0f" },
+  { max: 72, text: "Fair–Good", color: "#15803d" },
+  { max: 84, text: "Good", color: "#0f766e" },
+  { max: 93, text: "Very good", color: "#0e7490" },
+  { max: 101, text: "Epic", color: "#6d28d9" },
 ];
 
 export function ratingFor(score) {
