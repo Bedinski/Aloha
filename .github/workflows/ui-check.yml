@@ -1,8 +1,9 @@
 name: UI check
 
-# Headless-Chromium accessibility/visual gate. Runs the audit (WCAG contrast,
-# tap-target size, tiny fonts) as a pass/fail check and uploads before/after
-# screenshots as artifacts. Does NOT block the Pages deploy (separate workflow).
+# Headless-Chromium UI gates. The accessibility job checks DOM-level contrast,
+# tap-target size, and tiny fonts. The visual-validation job renders mocked
+# screenshots and fails on visual regressions such as blank pages, dark-mode
+# white bands, horizontal overflow, and unreadable native select options.
 
 on:
   push:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  ui:
+  accessibility:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +46,36 @@ jobs:
         working-directory: tools/ui-harness
         run: node audit.mjs
 
-      - name: Screenshots (light + dark)
+  visual-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Chromium system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 \
+            libxkbcommon0 libpango-1.0-0 libcairo2 libxcomposite1 libxdamage1 libxrandr2 || true
+          sudo apt-get install -y libasound2t64 || sudo apt-get install -y libasound2 || true
+
+      - name: Install harness (downloads Chromium)
+        working-directory: tools/ui-harness
+        run: npm install --no-audit --no-fund
+
+      - name: Serve the site
+        run: |
+          python3 -m http.server 8137 &
+          for i in $(seq 1 40); do curl -sf http://localhost:8137/index.html >/dev/null && break; sleep 0.5; done
+
+      - name: Visual validation (gate)
+        working-directory: tools/ui-harness
+        run: npm run visual
+
+      - name: Reference screenshots (light + dark)
         if: always()
         working-directory: tools/ui-harness
         run: node shoot.mjs && DARK=1 node shoot.mjs
@@ -54,6 +84,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-screenshots
-          path: tools/ui-harness/out/*.png
+          name: visual-validation-screenshots
+          path: tools/ui-harness/out/**/*.png
           if-no-files-found: warn

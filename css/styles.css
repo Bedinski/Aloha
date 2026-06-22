@@ -164,6 +164,14 @@ body {
   appearance: none;
 }
 .controls select { flex: 1 1 auto; min-width: 140px; }
+.controls select option {
+  background: #fffefa;
+  color: #172033;
+}
+.controls select option:checked {
+  background: #075985;
+  color: #fff;
+}
 .controls button { cursor: pointer; }
 .controls button:active { transform: scale(0.97); }
 

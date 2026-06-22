@@ -178,14 +178,17 @@ aid built from the free Open-Meteo wave/wind models, not a safety call.
 
 `tools/ui-harness/` renders both pages in headless Chromium with all external
 APIs mocked, then runs an **accessibility audit** (WCAG text contrast,
-tap-target size ≥ 44px, no sub-12px fonts). It's wired into CI
-(`.github/workflows/ui-check.yml`) as a pass/fail gate on every push, and
-uploads light + dark screenshots as artifacts.
+tap-target size ≥ 44px, no sub-12px fonts) plus a **visual validation** pass.
+The visual gate renders mobile and desktop, light and dark, then fails on blank
+screens, dark-mode white bands, horizontal overflow, and unreadable native
+select menus. Both jobs are wired into CI (`.github/workflows/ui-check.yml`) as
+pass/fail gates on every push, and upload screenshots as artifacts.
 
 ```bash
 cd tools/ui-harness && npm install
 python3 -m http.server 8137 &      # serve the repo root
 node audit.mjs                     # gate: exits non-zero on a UI regression
+npm run visual                     # gate: screenshot-backed visual validation
 node shoot.mjs && DARK=1 node shoot.mjs   # screenshots → out/
 ```
 
