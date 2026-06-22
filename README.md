@@ -4,14 +4,16 @@ A tiny, fast, **offline-friendly** companion for a Waikiki / Oahu trip. Two
 pages:
 
 1. **Dashboard** (`index.html`) — today's **tides**, **sunrise/sunset & golden
-   hour**, **surf & wind**, the **UV index**, and the **best snorkeling
+   hour**, **surf & wind**, the **UV index**, a decision-first **beach
+   briefing**, a **next-windows planning strip**, and the **best snorkeling
    windows**, all on one screen for the Waikiki area.
 2. **Surf forecast** (`surf.html`) — a **Surfline-style** detail view: **search
    35+ Hawaii breaks (incl. a dozen named Waikiki spots — Queens, Canoes,
    Pops, Threes, Kaisers, Publics, Tongg's…)**, see current conditions with a
    **quality rating**,
    **groundswell vs. windswell** breakdown, **wind relative to the break**
-   (offshore/onshore), **water temp**, and a drill-down **7-day forecast**.
+   (offshore/onshore), **water temp**, ranked **best upcoming sessions**, and a
+   drill-down **7-day forecast** with visible score factors.
 
 - **No API keys, no backend, no build step.** Pure static HTML/CSS/JS.
 - **Free to host** on GitHub Pages.
@@ -30,6 +32,7 @@ Data sources (all free + CORS-enabled, fetched directly from your phone):
 | Vog / air quality (US AQI, PM2.5, SO₂) | [Open-Meteo Air-Quality API](https://open-meteo.com/en/docs/air-quality-api) — keyless |
 | Sunrise / sunset / twilight / golden hour | Computed on-device (SunCalc algorithm) — **works with zero signal** |
 | Box-jellyfish influx window (south shore) | Computed on-device from the lunar cycle (~8–10 days after a full moon) — **no network** |
+| Official beach safety links | [Hawaii Beach Safety](https://hawaiibeachsafety.com/), [NWS Hawaii Surf Forecast](https://www.weather.gov/hfo/SRF), [Honolulu beach sign guide](https://www.honolulu.gov/hosd/beach-signs/) |
 
 > ⚠️ For trip planning only — **not** for navigation or safety decisions.
 > Always check official surf, weather, and lifeguard advisories before entering
@@ -112,6 +115,20 @@ A simple, transparent heuristic over daylight hours:
 
 Contiguous good hours are grouped into windows and ranked. It's a planning aid,
 not a substitute for checking conditions and lifeguard flags on the day.
+
+## How "best surf sessions" are ranked
+
+The forecast page scans daylight hours across the 7-day model run and groups
+contiguous surfable stretches. Sessions are ranked from the same transparent
+rating factors shown in the day detail:
+
+- **Size** — enough swell to be worth paddling, without heavily penalizing most
+  normal Hawaii surf.
+- **Period** — longer-period groundswell scores cleaner and stronger.
+- **Wind** — offshore/cross-offshore wind scores higher than onshore wind.
+- **Direction** — swell inside the break's swell window scores higher.
+- **Tide context** — shown alongside the recommendation so you can sanity-check
+  reef exposure and entry/exit timing.
 
 ---
 

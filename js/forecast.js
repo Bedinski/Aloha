@@ -59,12 +59,33 @@ function bucketDays(hourly) {
 
 const nearestHourTo = (hours, targetHstHour) =>
   hours.reduce((best, h) =>
-    best == null || Math.abs(hstHour(h) - targetHstHour) < Math.abs(hstHour(best) - targetHstHour) ? h : best,
+    best == null || Math.abs(hstHour(h.time) - targetHstHour) < Math.abs(hstHour(best.time) - targetHstHour) ? h : best,
   null);
 
 function nearestToNow(hours) {
   const now = Date.now();
   return hours.reduce((b, h) => (b == null || Math.abs(h.time - now) < Math.abs(b.time - now) ? h : b), null);
+}
+
+function tideAt(time) {
+  const curve = tides?.curve || [];
+  const ts = time.getTime();
+  for (let i = 0; i < curve.length - 1; i++) {
+    const a = curve[i], b = curve[i + 1];
+    if (ts >= a.time.getTime() && ts <= b.time.getTime()) {
+      const f = (ts - a.time.getTime()) / (b.time.getTime() - a.time.getTime());
+      return a.heightFt + (b.heightFt - a.heightFt) * f;
+    }
+  }
+  return null;
+}
+
+function tideTrend(time) {
+  const before = tideAt(new Date(time.getTime() - 3600000));
+  const after = tideAt(new Date(time.getTime() + 3600000));
+  if (before == null || after == null) return "";
+  if (Math.abs(after - before) < 0.15) return "slack-ish";
+  return after > before ? "rising tide" : "dropping tide";
 }
 
 function rate(h) {
@@ -80,8 +101,73 @@ function rate(h) {
   });
 }
 
+function factorPct(v) {
+  return Math.round(Math.max(0, Math.min(1, v ?? 0)) * 100);
+}
+
+function factorMeters(r) {
+  const rows = [
+    ["Size", r.factors.size],
+    ["Period", r.factors.period],
+    ["Wind", r.factors.wind],
+    ["Direction", r.factors.window],
+  ];
+  return `<div class="factor-list">${rows.map(([label, value]) => `
+    <div class="factor-meter">
+      <span>${label}</span>
+      <div><i style="width:${factorPct(value)}%"></i></div>
+      <strong>${factorPct(value)}</strong>
+    </div>`).join("")}</div>`;
+}
+
+function bestSessions(days) {
+  const candidates = [];
+  for (const hours of days) {
+    let run = null;
+    for (const h of hours) {
+      if (h.time.getTime() < Date.now() - 3600000 || hstHour(h.time) < 6 || hstHour(h.time) > 18) {
+        if (run) { candidates.push(run); run = null; }
+        continue;
+      }
+      const r = rate(h);
+      if (r.score >= 55 && h.waveFt != null) {
+        if (!run) run = { start: h.time, end: h.time, hours: [] };
+        run.end = h.time;
+        run.hours.push({ h, r });
+      } else if (run) {
+        candidates.push(run);
+        run = null;
+      }
+    }
+    if (run) candidates.push(run);
+  }
+
+  const windows = candidates.map((w) => {
+    const best = w.hours.reduce((a, b) => (b.r.score > a.r.score ? b : a), w.hours[0]);
+    const avg = Math.round(w.hours.reduce((sum, x) => sum + x.r.score, 0) / w.hours.length);
+    return {
+      start: w.start,
+      end: new Date(w.end.getTime() + 3600000),
+      avg,
+      best,
+      face: surfFaceRange(best.h.waveFt).label,
+      tide: tideAt(best.h.time),
+      trend: tideTrend(best.h.time),
+    };
+  });
+
+  if (windows.length) return windows.sort((a, b) => b.avg - a.avg).slice(0, 3);
+
+  return days
+    .flat()
+    .filter((h) => h.time.getTime() >= Date.now() - 3600000 && hstHour(h.time) >= 6 && hstHour(h.time) <= 18)
+    .map((h) => ({ start: h.time, end: new Date(h.time.getTime() + 3600000), avg: rate(h).score, best: { h, r: rate(h) }, face: surfFaceRange(h.waveFt).label, tide: tideAt(h.time), trend: tideTrend(h.time) }))
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 3);
+}
+
 function dayStats(hours) {
-  const daylight = hours.filter((h) => hstHour(h) >= 6 && hstHour(h) <= 19 && h.waveFt != null);
+  const daylight = hours.filter((h) => hstHour(h.time) >= 6 && hstHour(h.time) <= 19 && h.waveFt != null);
   const faces = daylight.map((h) => h.waveFt);
   let faceLabel = "—";
   if (faces.length) {
@@ -156,6 +242,58 @@ function renderNow() {
   return days;
 }
 
+function renderSessions(days) {
+  const sessions = bestSessions(days);
+  const offshoreFrom = compass((spot.facing + 180) % 360);
+  const windowText = spot.swellWindow
+    ? `${compass(spot.swellWindow[0])}-${compass(spot.swellWindow[1])}`
+    : "open";
+
+  const cards = sessions
+    .map((s, i) => {
+      const h = s.best.h;
+      const r = s.best.r;
+      const wind = windRelation(h.windDir, spot.facing, h.windMph);
+      const tide = s.tide != null ? `${s.tide.toFixed(1)} ft · ${s.trend}` : "tide unavailable";
+      return `<article class="session-card card">
+        <div class="session-rank">#${i + 1}</div>
+        <div class="session-top">
+          <div>
+            <h3>${relDayLabel(s.start)} · ${fmtTime(s.start)}-${fmtTime(s.end)}</h3>
+            <p>${s.face} faces · ${wind.label.toLowerCase()} wind</p>
+          </div>
+          ${pill(r)}
+        </div>
+        <dl class="session-stats">
+          <div><dt>Score</dt><dd>${s.avg}</dd></div>
+          <div><dt>Swell</dt><dd>${h.swellFt != null ? `${h.swellFt} ft @ ${Math.round(h.swellPeriod ?? 0)}s ${compass(h.swellDir)}` : "—"}</dd></div>
+          <div><dt>Wind</dt><dd>${h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—"}</dd></div>
+          <div><dt>Tide</dt><dd>${tide}</dd></div>
+        </dl>
+        <div class="session-reasons">
+          <span>size ${factorPct(r.factors.size)}</span>
+          <span>period ${factorPct(r.factors.period)}</span>
+          <span>wind ${factorPct(r.factors.wind)}</span>
+          <span>direction ${factorPct(r.factors.window)}</span>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  $("#session-panel").innerHTML = `
+    <div class="rail-head">
+      <h2>Best upcoming sessions</h2>
+      <span>ranked by size, period, wind, direction, and tide context</span>
+    </div>
+    <div class="session-grid">${cards}</div>
+    <div class="spot-intel">
+      <span><strong>${spot.level}</strong> break</span>
+      <span>Best wind from ${offshoreFrom}</span>
+      <span>Swell window ${windowText}</span>
+      <span>Check signs and lifeguards on arrival</span>
+    </div>`;
+}
+
 function renderDayStrip(days) {
   $("#day-strip").innerHTML = days
     .map((hours, i) => {
@@ -183,6 +321,10 @@ function renderDayDetail(days) {
   if (!hours.length) { $("#day-detail").innerHTML = ""; return; }
   const dayDate = hours[0].time;
   const sun = getSunTimes(hours[0].time, spot.lat, spot.lng);
+  const daylight = hours.filter((h) => hstHour(h.time) >= 6 && hstHour(h.time) <= 18 && h.waveFt != null);
+  const best = daylight
+    .map((h) => ({ h, r: rate(h) }))
+    .sort((a, b) => b.r.score - a.r.score)[0] || null;
 
   // hourly rows at 3-hour steps across the day
   const slots = [6, 9, 12, 15, 18, 21]
@@ -212,6 +354,15 @@ function renderDayDetail(days) {
 
   $("#day-detail").innerHTML = `
     <h3>${relDayLabel(dayDate)} · ${monthDay(dayDate)}</h3>
+    ${best ? `<div class="day-brief">
+      <div>
+        <span>Best hour</span>
+        <strong>${fmtTime(best.h.time)} · ${surfFaceRange(best.h.waveFt).label}</strong>
+        <em>${best.r.wind.label} · ${tideAt(best.h.time) != null ? `${tideAt(best.h.time).toFixed(1)} ft ${tideTrend(best.h.time)}` : "tide unavailable"}</em>
+      </div>
+      ${pill(best.r)}
+    </div>
+    ${factorMeters(best.r)}` : ""}
     <div class="chart-wrap">${lineChart({
       points: hours.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: x.waveFt })),
       color: "#0284c7",
@@ -268,6 +419,7 @@ async function load() {
   try {
     [ocean, tides] = await Promise.all([getOcean(spot.lat, spot.lng), getTides(spot.station, 7)]);
     const days = renderNow();
+    renderSessions(days);
     renderDayStrip(days);
     renderDayDetail(days);
     const cache = ocean.fromCache || tides.fromCache;
@@ -277,6 +429,7 @@ async function load() {
       : `<span class="badge live">Updated ${staleLabel(saved)}</span>`;
   } catch (err) {
     $("#status-line").innerHTML = "";
+    $("#session-panel").innerHTML = "";
     const b = $("#error-banner");
     b.hidden = false;
     b.textContent = "Couldn't load the surf forecast and no cached copy exists yet. Check your connection and try again.";

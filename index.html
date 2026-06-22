@@ -54,6 +54,10 @@
 
       <section id="alerts" class="alerts" aria-live="polite" aria-label="Active advisories"></section>
 
+      <section id="trip-brief" class="beach-brief card" aria-label="Beach briefing"></section>
+
+      <section id="hour-plan" class="hour-plan" aria-label="Next beach windows"></section>
+
       <section id="now-cards" class="now-cards" aria-label="Current conditions"></section>
 
       <div class="grid">
@@ -107,6 +111,25 @@
           <h2>🌋 Vog &amp; air quality</h2>
           <div id="air"></div>
           <p class="muted small">US AQI + a vog read from SO₂ · modelled (Open-Meteo), not a ground sensor.</p>
+        </section>
+
+        <section class="card panel safety-panel">
+          <h2>🛟 Official safety checks</h2>
+          <div class="source-links">
+            <a href="https://hawaiibeachsafety.com/" target="_blank" rel="noopener">
+              <strong>Hawaii Beach Safety</strong>
+              <span>Lifeguarded beach conditions</span>
+            </a>
+            <a href="https://www.weather.gov/hfo/SRF" target="_blank" rel="noopener">
+              <strong>NWS Hawaii surf forecast</strong>
+              <span>Official shore-by-shore surf outlook</span>
+            </a>
+            <a href="https://www.honolulu.gov/hosd/beach-signs/" target="_blank" rel="noopener">
+              <strong>Beach sign guide</strong>
+              <span>Honolulu Ocean Safety warnings</span>
+            </a>
+          </div>
+          <p class="muted small">Check signs and ask a lifeguard before entering. Conditions can change faster than model data updates.</p>
         </section>
       </div>
     </main>

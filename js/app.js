@@ -130,6 +130,133 @@ function snorkelScore(hour, sun) {
 const scoreLabel = (s) =>
   s >= 70 ? "Excellent" : s >= 55 ? "Good" : s >= 40 ? "Fair" : "Poor";
 
+function briefLevel(hour, sun) {
+  const score = snorkelScore(hour, sun);
+  const wave = hour.waveFt ?? 0;
+  const wind = hour.windMph ?? 0;
+  const uv = hour.uv ?? 0;
+
+  if (score === 0) {
+    return {
+      label: "Use the next daylight window",
+      tone: "night",
+      copy: "Comfort is low right now. Use the next windows below for timing and avoid entering after dark.",
+    };
+  }
+  if (wave >= 5 || wind >= 22) {
+    return {
+      label: "Shore check only",
+      tone: "rough",
+      copy: "Surf or wind is elevated. Favor guarded beaches and ask a lifeguard.",
+    };
+  }
+  if (uv >= 8 && score < 70) {
+    return {
+      label: "Plan shade breaks",
+      tone: "sun",
+      copy: "Conditions are usable, but the sun load is high during the middle of the day.",
+    };
+  }
+  if (score >= 70) {
+    return {
+      label: "Go now",
+      tone: "good",
+      copy: "A strong beach window is lining up: manageable surf, usable wind, and daylight.",
+    };
+  }
+  if (score >= 55) {
+    return {
+      label: "Good window",
+      tone: "ok",
+      copy: "Worth going if you choose a protected entry and keep an eye on wind.",
+    };
+  }
+  if (score >= 40) {
+    return {
+      label: "Choose carefully",
+      tone: "watch",
+      copy: "Expect some chop or reduced comfort. Protected snorkeling spots should do better.",
+    };
+  }
+  return {
+    label: "Wait for calmer water",
+    tone: "rough",
+    copy: "The next few hours look marginal for casual beach time.",
+  };
+}
+
+function nextBestWindow(ocean, sun) {
+  const today = bestWindows(ocean.hourly, sun, hstNoon(0), 45)[0];
+  if (today) return today;
+  const tomorrowSun = getSunTimes(hstNoon(1), activeCoords().lat, activeCoords().lng);
+  return bestWindows(ocean.hourly, tomorrowSun, hstNoon(1), 45)[0] || null;
+}
+
+function renderTripBrief(ocean, tides, sun) {
+  const h = nearestHour(ocean.hourly) || {};
+  const cur = ocean.current || h;
+  const level = briefLevel({ ...h, uv: cur.uv ?? h.uv }, sun);
+  const score = snorkelScore({ ...h, uv: cur.uv ?? h.uv }, sun);
+  const tNow = tideNow(tides.curve);
+  const nextTide = tides.highsLows.find((t) => t.time.getTime() > Date.now());
+  const uv = uvInfo(cur.uv ?? h.uv);
+  const best = nextBestWindow(ocean, sun);
+  const bestText = best
+    ? `${fmtTime(best.start)}-${fmtTime(best.end)} · ${scoreLabel(best.avg).toLowerCase()} (${best.avg})`
+    : "No standout calm window";
+
+  const metric = (label, value, sub) =>
+    `<div class="brief-metric"><span>${label}</span><strong>${value}</strong><em>${sub}</em></div>`;
+
+  $("#trip-brief").innerHTML = `
+    <div class="brief-main">
+      <div class="brief-kicker">Beach briefing · ${current.name}</div>
+      <h2>${level.label}</h2>
+      <p>${level.copy}</p>
+    </div>
+    <div class="brief-score ${level.tone}">
+      <span>${score == null ? "—" : score}</span>
+      <small>${score == null ? "No read" : scoreLabel(score)}</small>
+    </div>
+    <div class="brief-grid">
+      ${metric("Surf", h.waveFt != null ? `${h.waveFt} ft` : "—", waveDesc(h.waveFt))}
+      ${metric("Wind", h.windMph != null ? `${Math.round(h.windMph)} mph` : "—", `${compass(h.windDir)} · ${windDesc(h.windMph)}`)}
+      ${metric("Tide", tNow != null ? `${tNow.toFixed(1)} ft` : "—", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "No event")}
+      ${metric("UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat)}
+      ${metric("Best window", bestText, "next calm stretch")}
+    </div>`;
+}
+
+function renderHourPlan(ocean, sun) {
+  const now = Date.now();
+  const upcoming = [];
+  for (const h of ocean.hourly) {
+    if (h.time.getTime() < now - 1800000 || h.time.getTime() > now + 14 * 3600000) continue;
+    if (!upcoming.length || h.time.getTime() - upcoming[upcoming.length - 1].time.getTime() >= 3 * 3600000) {
+      upcoming.push(h);
+    }
+    if (upcoming.length >= 6) break;
+  }
+
+  const item = (h) => {
+    const score = snorkelScore(h, sun);
+    const tone = score >= 70 ? "good" : score >= 55 ? "ok" : score >= 40 ? "watch" : "rough";
+    return `<article class="hour-chip ${tone}">
+      <div class="hour-time">${fmtTime(h.time)}</div>
+      <strong>${scoreLabel(score || 0)}</strong>
+      <span>${h.waveFt != null ? `${h.waveFt} ft` : "—"} surf</span>
+      <span>${h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—"} wind</span>
+    </article>`;
+  };
+
+  $("#hour-plan").innerHTML = `
+    <div class="rail-head">
+      <h2>Next beach windows</h2>
+      <span>3-hour checkpoints</span>
+    </div>
+    <div class="hour-track">${upcoming.map(item).join("")}</div>`;
+}
+
 // Find contiguous daylight windows scoring >= threshold on a given HST day.
 function bestWindows(hourly, sun, dayAnchor, threshold = 55) {
   const scored = hourly
@@ -331,13 +458,17 @@ function setStatus(ocean, tides) {
 async function load() {
   $("#error-banner").hidden = true;
   $("#status-line").innerHTML = `<span class="badge">Loading…</span>`;
+  $("#trip-brief").innerHTML = `<div class="brief-loading">Building beach briefing…</div>`;
+  $("#hour-plan").innerHTML = "";
   const { lat, lng } = activeCoords();
 
   // Sun is local-only, render immediately.
-  renderSun();
+  const sun = renderSun();
 
   try {
     const [tides, ocean] = await Promise.all([getTides(current.station), getOcean(lat, lng)]);
+    renderTripBrief(ocean, tides, sun);
+    renderHourPlan(ocean, sun);
     renderNowCards(ocean, tides);
     renderTides(tides);
     renderSurf(ocean);
@@ -346,6 +477,8 @@ async function load() {
     setStatus(ocean, tides);
   } catch (err) {
     $("#status-line").innerHTML = "";
+    $("#trip-brief").innerHTML = `<div class="brief-loading">Sun times are still available offline. Tide and surf data need a first successful connection.</div>`;
+    $("#hour-plan").innerHTML = "";
     const b = $("#error-banner");
     b.hidden = false;
     b.textContent =
