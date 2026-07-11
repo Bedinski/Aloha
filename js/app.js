@@ -7,6 +7,7 @@ import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
 import { jellyfishHtml } from "./jellyfish.js";
 import { getAir, airHtml } from "./air.js";
+import { hgt, temp, spd, hVal, hUnit, initSettings } from "./units.js";
 
 // ---------------------------------------------------------------------------
 // Locations — all near Waikiki / south & east shore of Oahu, which the
@@ -219,9 +220,9 @@ function renderTripBrief(ocean, tides, sun) {
       <small>${score == null ? "No read" : scoreLabel(score)}</small>
     </div>
     <div class="brief-grid">
-      ${metric("Surf", h.waveFt != null ? `${h.waveFt} ft` : "—", waveDesc(h.waveFt))}
-      ${metric("Wind", h.windMph != null ? `${Math.round(h.windMph)} mph` : "—", `${compass(h.windDir)} · ${windDesc(h.windMph)}`)}
-      ${metric("Tide", tNow != null ? `${tNow.toFixed(1)} ft` : "—", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "No event")}
+      ${metric("Surf", hgt(h.waveFt), waveDesc(h.waveFt))}
+      ${metric("Wind", spd(h.windMph), `${compass(h.windDir)} · ${windDesc(h.windMph)}`)}
+      ${metric("Tide", hgt(tNow, 1), nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "No event")}
       ${metric("UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat)}
       ${metric("Best window", bestText, "next calm stretch")}
     </div>`;
@@ -244,8 +245,8 @@ function renderHourPlan(ocean, sun) {
     return `<article class="hour-chip ${tone}">
       <div class="hour-time">${fmtTime(h.time)}</div>
       <strong>${scoreLabel(score || 0)}</strong>
-      <span>${h.waveFt != null ? `${h.waveFt} ft` : "—"} surf</span>
-      <span>${h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—"} wind</span>
+      <span>${hgt(h.waveFt)} surf</span>
+      <span>${h.windMph != null ? `${spd(h.windMph)} ${compass(h.windDir)}` : "—"} wind</span>
     </article>`;
   };
 
@@ -294,6 +295,7 @@ function bestWindows(hourly, sun, dayAnchor, threshold = 55) {
 const $ = (sel) => document.querySelector(sel);
 let current = LOCATIONS[0];
 let customCoords = null; // {lat, lng} from geolocation
+let last = { ocean: null, tides: null, sun: null }; // for instant unit re-render
 
 function activeCoords() {
   return customCoords || { lat: current.lat, lng: current.lng };
@@ -337,11 +339,11 @@ function renderNowCards(ocean, tides) {
     `<div class="stat-big">${big}</div><div class="stat-sub">${sub}</div></div>`;
 
   $("#now-cards").innerHTML = [
-    card("🌡️", "Air", cur.tempF != null ? `${Math.round(cur.tempF)}°F` : "—", "Waikiki air temp", "#f97362"),
-    card("🌊", "Surf", waterWave != null ? `${waterWave} ft` : "—", waveDesc(waterWave), "#0d9488"),
-    card("💨", "Wind", cur.windMph != null ? `${Math.round(cur.windMph)} mph` : "—", `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`, "#0ea5e9"),
+    card("🌡️", "Air", temp(cur.tempF), "Waikiki air temp", "#f97362"),
+    card("🌊", "Surf", hgt(waterWave), waveDesc(waterWave), "#0d9488"),
+    card("💨", "Wind", spd(cur.windMph), `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`, "#0ea5e9"),
     card("🔆", "UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat, "#f59e0b"),
-    card("🌙", "Tide now", tNow != null ? `${tNow.toFixed(1)} ft` : "—", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "", "#6366f1"),
+    card("🌙", "Tide now", hgt(tNow, 1), nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${fmtTime(nextTide.time)}` : "", "#6366f1"),
   ].join("");
 }
 
@@ -365,7 +367,7 @@ function renderTides(tides) {
   $("#tide-table").innerHTML = upcoming
     .map(
       (t) =>
-        `<div class="kv"><span>${t.type === "H" ? "▲ High" : "▼ Low"} · ${fmtTime(t.time)}</span><strong>${t.heightFt.toFixed(1)} ft</strong></div>`
+        `<div class="kv"><span>${t.type === "H" ? "▲ High" : "▼ Low"} · ${fmtTime(t.time)}</span><strong>${hgt(t.heightFt, 1)}</strong></div>`
     )
     .join("") || '<p class="muted">No tide data.</p>';
 
@@ -373,13 +375,14 @@ function renderTides(tides) {
   const fromNow = tides.curve.filter((c) => c.time.getTime() > Date.now() - 3600000).slice(0, 37);
   const markers = tides.highsLows
     .filter((t) => fromNow.length && t.time >= fromNow[0].time && t.time <= fromNow[fromNow.length - 1].time)
-    .map((t) => ({ x: t.time, y: t.heightFt, label: t.type }));
+    .map((t) => ({ x: t.time, y: hVal(t.heightFt), label: t.type }));
   $("#tide-chart").innerHTML = lineChart({
-    points: fromNow.map((c) => ({ x: c.time, y: c.heightFt })),
+    points: fromNow.map((c) => ({ x: c.time, y: hVal(c.heightFt) })),
     color: "#0284c7",
     nowAt: new Date(),
     markers,
-    unit: "ft",
+    unit: hUnit(),
+    label: `Tide height over the next 36 hours, in ${hUnit()}`,
   });
 }
 
@@ -388,17 +391,18 @@ function renderSurf(ocean) {
   if (h) {
     const row = (label, val) => `<div class="kv"><span>${label}</span><strong>${val}</strong></div>`;
     $("#surf-now").innerHTML =
-      row("Wave height", h.waveFt != null ? `${h.waveFt} ft (${waveDesc(h.waveFt)})` : "—") +
+      row("Wave height", h.waveFt != null ? `${hgt(h.waveFt)} (${waveDesc(h.waveFt)})` : "—") +
       row("Wave period", h.wavePeriod != null ? `${Math.round(h.wavePeriod)} s` : "—") +
-      row("Swell", h.swellFt != null ? `${h.swellFt} ft @ ${Math.round(h.swellPeriod || 0)} s ${compass(h.swellDir)}` : "—") +
-      row("Wind", h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)} (${windDesc(h.windMph)})` : "—");
+      row("Swell", h.swellFt != null ? `${hgt(h.swellFt)} @ ${Math.round(h.swellPeriod || 0)} s ${compass(h.swellDir)}` : "—") +
+      row("Wind", h.windMph != null ? `${spd(h.windMph)} ${compass(h.windDir)} (${windDesc(h.windMph)})` : "—");
   }
   const next36 = ocean.hourly.filter((x) => x.time.getTime() > Date.now() - 3600000 && x.waveFt != null).slice(0, 37);
   $("#surf-chart").innerHTML = lineChart({
-    points: next36.map((x) => ({ x: x.time, y: x.waveFt })),
+    points: next36.map((x) => ({ x: x.time, y: hVal(x.waveFt) })),
     color: "#0d9488",
     nowAt: new Date(),
-    unit: "ft",
+    unit: hUnit(),
+    label: `Wave height forecast over the next 36 hours, in ${hUnit()}`,
   });
 }
 
@@ -408,6 +412,7 @@ function renderUv(ocean) {
     points: today.map((x) => ({ x: x.time, y: x.uv })),
     color: "#f59e0b",
     nowAt: new Date(),
+    label: "UV index across today",
   });
   const peak = today.reduce((m, x) => (x.uv > (m?.uv ?? -1) ? x : m), null);
   if (peak) {
@@ -467,6 +472,7 @@ async function load() {
 
   try {
     const [tides, ocean] = await Promise.all([getTides(current.station), getOcean(lat, lng)]);
+    last = { ocean, tides, sun };
     renderTripBrief(ocean, tides, sun);
     renderHourPlan(ocean, sun);
     renderNowCards(ocean, tides);
@@ -538,9 +544,23 @@ function wireGeo() {
   });
 }
 
+// Re-render unit-dependent views from stored data (no refetch).
+function applyUnits() {
+  const { ocean, tides, sun } = last;
+  if (ocean && tides && sun) {
+    renderTripBrief(ocean, tides, sun);
+    renderHourPlan(ocean, sun);
+    renderNowCards(ocean, tides);
+    renderTides(tides);
+    renderSurf(ocean);
+  }
+  renderBuoy("233"); // buoy height re-renders (in-memory cache → instant)
+}
+
 function init() {
   buildLocationSelect();
   wireGeo();
+  initSettings(applyUnits);
   $("#refresh-btn").addEventListener("click", load);
   load();
 

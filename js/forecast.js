@@ -4,9 +4,16 @@ import { SPOTS, searchSpots, getSpot, STATIONS } from "./spots.js";
 import { getOcean } from "./surf.js";
 import { getTides } from "./tides.js";
 import { getSunTimes } from "./sun.js";
-import { surfQuality, surfFaceRange, compass, windRelation } from "./rating.js";
+import { surfQuality, surfFaceRange, compass, windRelation, conditionsSummary } from "./rating.js";
 import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
+import { hgt, hgtRange, temp, spd, hVal, hUnit, initSettings } from "./units.js";
+
+// Units-aware breaking-face label ("2–3 ft" / "0.9 m" / "Flat").
+function faceStr(waveFt) {
+  const f = surfFaceRange(waveFt);
+  return f.label === "Flat" || f.label === "—" ? f.label : hgtRange(f.min, f.max);
+}
 
 const TZ = "Pacific/Honolulu";
 const $ = (s) => document.querySelector(s);
@@ -150,7 +157,7 @@ function bestSessions(days) {
       end: new Date(w.end.getTime() + 3600000),
       avg,
       best,
-      face: surfFaceRange(best.h.waveFt).label,
+      face: faceStr(best.h.waveFt),
       tide: tideAt(best.h.time),
       trend: tideTrend(best.h.time),
     };
@@ -161,7 +168,7 @@ function bestSessions(days) {
   return days
     .flat()
     .filter((h) => h.time.getTime() >= Date.now() - 3600000 && hstHour(h.time) >= 6 && hstHour(h.time) <= 18)
-    .map((h) => ({ start: h.time, end: new Date(h.time.getTime() + 3600000), avg: rate(h).score, best: { h, r: rate(h) }, face: surfFaceRange(h.waveFt).label, tide: tideAt(h.time), trend: tideTrend(h.time) }))
+    .map((h) => ({ start: h.time, end: new Date(h.time.getTime() + 3600000), avg: rate(h).score, best: { h, r: rate(h) }, face: faceStr(h.waveFt), tide: tideAt(h.time), trend: tideTrend(h.time) }))
     .sort((a, b) => b.avg - a.avg)
     .slice(0, 3);
 }
@@ -175,7 +182,7 @@ function dayStats(hours) {
     if (maxHs < 0.8) faceLabel = "Flat";
     else {
       const lo = Math.max(1, Math.floor(Math.min(...faces)));
-      faceLabel = `${lo}–${Math.max(lo + 1, Math.round(maxHs * 1.5))} ft`;
+      faceLabel = hgtRange(lo, Math.max(lo + 1, Math.round(maxHs * 1.5)));
     }
   }
   const am = nearestHourTo(hours, 9);
@@ -201,9 +208,12 @@ function renderNow() {
   const h = nearestToNow(ocean.hourly);
   if (!h) { $("#now-panel").innerHTML = '<p class="muted">No forecast data.</p>'; return days; }
   const r = rate(h);
-  const face = surfFaceRange(h.waveFt);
   const wind = windRelation(h.windDir, spot.facing, h.windMph);
   const nextTide = tides?.highsLows.find((t) => t.time.getTime() > Date.now());
+  const summary = conditionsSummary({
+    waveFt: h.waveFt, faceLabel: faceStr(h.waveFt), swellPeriod: h.swellPeriod,
+    swellDir: h.swellDir, wind, ratingText: r.rating.text,
+  });
 
   const stat = (icon, label, val, sub = "", tone = "var(--accent)") =>
     `<div class="fstat" style="--tone:${tone}"><div class="fstat-label">${icon} ${label}</div>` +
@@ -216,27 +226,29 @@ function renderNow() {
         <div class="rating-text">${r.rating.text}</div>
       </div>
       <div class="now-face">
-        <div class="face-big">${face.label}</div>
+        <div class="face-big">${faceStr(h.waveFt)}</div>
         <div class="muted small">surf (face) · updated ${staleLabel(ocean.savedAt)}</div>
       </div>
     </div>
+    <p class="now-summary">${summary}</p>
     <div class="fstats">
-      ${stat("🌊", "Primary swell", h.swellFt != null ? `${h.swellFt} ft` : "—", h.swellPeriod != null ? `${Math.round(h.swellPeriod)}s ${compass(h.swellDir)} (${Math.round(h.swellDir ?? 0)}°)` : "", "#0d9488")}
-      ${stat("〰️", "Wind swell", h.windWaveFt != null ? `${h.windWaveFt} ft` : "—", h.windWavePeriod != null ? `${Math.round(h.windWavePeriod)}s ${compass(h.windWaveDir)}` : "", "#0891b2")}
-      ${stat("💨", "Wind", h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—", `${wind.label}${h.windGustMph != null ? ` · gust ${Math.round(h.windGustMph)}` : ""}`, "#0ea5e9")}
-      ${stat("🌡️", "Water", h.waterTempF != null ? `${h.waterTempF}°F` : "—", h.tempF != null ? `air ${Math.round(h.tempF)}°F` : "", "#f97362")}
-      ${stat("🌙", "Next tide", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${nextTide.heightFt.toFixed(1)} ft` : "—", nextTide ? fmtTime(nextTide.time) : "", "#6366f1")}
+      ${stat("🌊", "Primary swell", hgt(h.swellFt), h.swellPeriod != null ? `${Math.round(h.swellPeriod)}s ${compass(h.swellDir)} (${Math.round(h.swellDir ?? 0)}°)` : "", "#0d9488")}
+      ${stat("〰️", "Wind swell", hgt(h.windWaveFt), h.windWavePeriod != null ? `${Math.round(h.windWavePeriod)}s ${compass(h.windWaveDir)}` : "", "#0891b2")}
+      ${stat("💨", "Wind", h.windMph != null ? `${spd(h.windMph)} ${compass(h.windDir)}` : "—", `${wind.label}${h.windGustMph != null ? ` · gust ${spd(h.windGustMph)}` : ""}`, "#0ea5e9")}
+      ${stat("🌡️", "Water", temp(h.waterTempF), h.tempF != null ? `air ${temp(h.tempF)}` : "", "#f97362")}
+      ${stat("🌙", "Next tide", nextTide ? `${nextTide.type === "H" ? "High" : "Low"} ${hgt(nextTide.heightFt, 1)}` : "—", nextTide ? fmtTime(nextTide.time) : "", "#6366f1")}
       ${stat("🔆", "UV", h.uv != null ? Math.round(h.uv) : "—", "reef-safe SPF", "#f59e0b")}
     </div>`;
 
   // 7-day surf-height overview
   $("#overview-chart").innerHTML = lineChart({
-    points: ocean.hourly.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: x.waveFt })),
+    points: ocean.hourly.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: hVal(x.waveFt) })),
     color: "#0d9488",
     height: 140,
     nowAt: new Date(),
     xFmt: (t) => relDayLabel(new Date(t)),
-    unit: "ft",
+    unit: hUnit(),
+    label: `Seven-day surf height outlook, in ${hUnit()}`,
   });
 
   return days;
@@ -254,7 +266,7 @@ function renderSessions(days) {
       const h = s.best.h;
       const r = s.best.r;
       const wind = windRelation(h.windDir, spot.facing, h.windMph);
-      const tide = s.tide != null ? `${s.tide.toFixed(1)} ft · ${s.trend}` : "tide unavailable";
+      const tide = s.tide != null ? `${hgt(s.tide, 1)} · ${s.trend}` : "tide unavailable";
       return `<article class="session-card card">
         <div class="session-rank">#${i + 1}</div>
         <div class="session-top">
@@ -266,8 +278,8 @@ function renderSessions(days) {
         </div>
         <dl class="session-stats">
           <div><dt>Score</dt><dd>${s.avg}</dd></div>
-          <div><dt>Swell</dt><dd>${h.swellFt != null ? `${h.swellFt} ft @ ${Math.round(h.swellPeriod ?? 0)}s ${compass(h.swellDir)}` : "—"}</dd></div>
-          <div><dt>Wind</dt><dd>${h.windMph != null ? `${Math.round(h.windMph)} mph ${compass(h.windDir)}` : "—"}</dd></div>
+          <div><dt>Swell</dt><dd>${h.swellFt != null ? `${hgt(h.swellFt)} @ ${Math.round(h.swellPeriod ?? 0)}s ${compass(h.swellDir)}` : "—"}</dd></div>
+          <div><dt>Wind</dt><dd>${h.windMph != null ? `${spd(h.windMph)} ${compass(h.windDir)}` : "—"}</dd></div>
           <div><dt>Tide</dt><dd>${tide}</dd></div>
         </dl>
         <div class="session-reasons">
@@ -335,13 +347,12 @@ function renderDayDetail(days) {
     .map((h) => {
       const r = rate(h);
       const wind = windRelation(h.windDir, spot.facing, h.windMph);
-      const face = surfFaceRange(h.waveFt);
       return `<tr>
         <td>${fmtTime(h.time)}</td>
         <td>${pill(r)} <span class="muted small">${r.score}</span></td>
-        <td>${face.label}</td>
-        <td>${h.swellFt != null ? `${h.swellFt}ft ${Math.round(h.swellPeriod ?? 0)}s ${compass(h.swellDir)}` : "—"}</td>
-        <td>${h.windMph != null ? `${Math.round(h.windMph)} ${compass(h.windDir)}` : "—"}<br><span class="muted small">${wind.label}</span></td>
+        <td>${faceStr(h.waveFt)}</td>
+        <td>${h.swellFt != null ? `${hgt(h.swellFt)} ${Math.round(h.swellPeriod ?? 0)}s ${compass(h.swellDir)}` : "—"}</td>
+        <td>${h.windMph != null ? `${spd(h.windMph)} ${compass(h.windDir)}` : "—"}<br><span class="muted small">${wind.label}</span></td>
       </tr>`;
     })
     .join("");
@@ -349,7 +360,7 @@ function renderDayDetail(days) {
   // tide events for this day
   const dayTides = (tides?.highsLows || []).filter((t) => dayKey(t.time) === dayKey(dayDate));
   const tideLine = dayTides.length
-    ? dayTides.map((t) => `${t.type === "H" ? "▲" : "▼"} ${fmtTime(t.time)} ${t.heightFt.toFixed(1)}ft`).join(" · ")
+    ? dayTides.map((t) => `${t.type === "H" ? "▲" : "▼"} ${fmtTime(t.time)} ${hgt(t.heightFt, 1)}`).join(" · ")
     : "—";
 
   $("#day-detail").innerHTML = `
@@ -357,17 +368,18 @@ function renderDayDetail(days) {
     ${best ? `<div class="day-brief">
       <div>
         <span>Best hour</span>
-        <strong>${fmtTime(best.h.time)} · ${surfFaceRange(best.h.waveFt).label}</strong>
-        <em>${best.r.wind.label} · ${tideAt(best.h.time) != null ? `${tideAt(best.h.time).toFixed(1)} ft ${tideTrend(best.h.time)}` : "tide unavailable"}</em>
+        <strong>${fmtTime(best.h.time)} · ${faceStr(best.h.waveFt)}</strong>
+        <em>${best.r.wind.label} · ${tideAt(best.h.time) != null ? `${hgt(tideAt(best.h.time), 1)} ${tideTrend(best.h.time)}` : "tide unavailable"}</em>
       </div>
       ${pill(best.r)}
     </div>
     ${factorMeters(best.r)}` : ""}
     <div class="chart-wrap">${lineChart({
-      points: hours.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: x.waveFt })),
+      points: hours.filter((x) => x.waveFt != null).map((x) => ({ x: x.time, y: hVal(x.waveFt) })),
       color: "#0284c7",
       nowAt: dayKey(dayDate) === dayKey(new Date()) ? new Date() : null,
-      unit: "ft",
+      unit: hUnit(),
+      label: `${relDayLabel(dayDate)} surf height by hour, in ${hUnit()}`,
     })}</div>
     <table class="hourly">
       <thead><tr><th>Time</th><th>Rating</th><th>Surf</th><th>Swell</th><th>Wind</th></tr></thead>
@@ -441,8 +453,39 @@ async function load() {
   renderBuoy(spot.buoy);
 }
 
+// Re-render unit-dependent views from stored data (no refetch).
+function applyUnits() {
+  if (ocean && tides) {
+    const days = renderNow();
+    renderSessions(days);
+    renderDayStrip(days);
+    renderDayDetail(days);
+  }
+  renderBuoy(spot.buoy);
+}
+
+function wireShare() {
+  const btn = $("#share-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const url = location.href;
+    const data = { title: "Aloha surf forecast", text: `${spot.name} surf forecast`, url };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else {
+        await navigator.clipboard.writeText(url);
+        const prev = btn.textContent;
+        btn.textContent = "Link copied";
+        setTimeout(() => (btn.textContent = prev), 1500);
+      }
+    } catch { /* user dismissed the share sheet */ }
+  });
+}
+
 function init() {
   wireSearch();
+  wireShare();
+  initSettings(applyUnits);
   $("#refresh-btn").addEventListener("click", load);
   load();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("./service-worker.js").catch(() => {});

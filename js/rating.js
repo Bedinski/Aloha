@@ -120,6 +120,23 @@ export function surfQuality({ waveFt, swellFt, swellPeriod, swellDir, windMph, w
   };
 }
 
+/** A plain-language one-liner about current conditions (Surfline-style).
+ *  `faceLabel` is already unit-formatted; `wind` is a windRelation() result. */
+export function conditionsSummary({ waveFt, faceLabel, swellPeriod, swellDir, wind, ratingText }) {
+  if (waveFt == null || waveFt < 0.8) return "Flat — nothing much to ride right now.";
+  const clean =
+    !wind || wind.kind === "glassy" || wind.kind === "offshore" ? "Clean" :
+    wind.kind === "cross-offshore" ? "Fairly clean" :
+    wind.kind === "onshore" ? "Choppy" : "Bumpy";
+  const dir = compass(swellDir);
+  const per = swellPeriod != null ? ` at ${Math.round(swellPeriod)}s` : "";
+  const windPhrase =
+    !wind || wind.kind === "unknown" ? "" :
+    wind.kind === "glassy" ? ", glassy" : `, ${wind.label.toLowerCase()} wind`;
+  const tail = ratingText ? ` — ${ratingText.toLowerCase()}.` : ".";
+  return `${clean} ${faceLabel}${dir ? " " + dir : ""} swell${per}${windPhrase}${tail}`;
+}
+
 /** Significant wave height (ft) -> a Surfline-style breaking-face range. */
 export function surfFaceRange(hsFt) {
   if (hsFt == null) return { min: 0, max: 0, label: "—" };

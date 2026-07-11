@@ -13,6 +13,7 @@ export function lineChart({
   nowAt = null,
   xFmt = defaultXFmt,
   unit = "",
+  label = "",
 }) {
   if (!points.length) return '<p class="muted small">No data yet.</p>';
   const padT = 16, padB = 26, padL = 8, padR = 34;
@@ -35,7 +36,9 @@ export function lineChart({
   const area = `${path} L${px(maxX).toFixed(1)},${(height - padB).toFixed(1)} L${px(minX).toFixed(1)},${(height - padB).toFixed(1)} Z`;
   const gid = "g" + Math.random().toString(36).slice(2, 8);
 
-  let svg = `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" preserveAspectRatio="none">`;
+  const aria = label ? ` aria-label="${label.replace(/"/g, "'")}"` : "";
+  let svg = `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img"${aria} preserveAspectRatio="none">`;
+  if (label) svg += `<title>${label.replace(/[<>&]/g, " ")}</title>`;
   svg += `<defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1">`;
   svg += `<stop offset="0" stop-color="${color}" stop-opacity="0.40"/><stop offset="1" stop-color="${color}" stop-opacity="0.02"/></linearGradient></defs>`;
 

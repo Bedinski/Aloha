@@ -8,11 +8,14 @@
 // Browse/verify: https://pae-paha.pacioos.hawaii.edu/erddap/tabledap/cdip_wave_agg.html
 
 import { compass } from "./rating.js";
+import { hgt } from "./units.js";
 
 const ERDDAP =
   "https://pae-paha.pacioos.hawaii.edu/erddap/tabledap/cdip_wave_agg.jsonp";
 const M_TO_FT = 3.28084;
 const CACHE = "aloha:buoy:";
+const MEMO_MS = 10 * 60 * 1000; // in-memory: avoid refetch on unit re-render
+const memo = new Map(); // stationId -> { at, reading }
 
 // CDIP station_id -> friendly metadata (NDBC number for reference).
 export const BUOYS = {
@@ -78,6 +81,8 @@ function parse(data) {
  * survives an offline reload. Throws only if it fails AND no cache exists.
  */
 export async function getBuoy(stationId) {
+  const m = memo.get(stationId);
+  if (m && Date.now() - m.at < MEMO_MS) return { ...m.reading, fromCache: m.fromCache };
   try {
     const reading = parse(await jsonp(buildUrl(stationId)));
     if (!reading) throw new Error("no rows");
@@ -85,12 +90,15 @@ export async function getBuoy(stationId) {
       CACHE + stationId,
       JSON.stringify({ savedAt: Date.now(), reading: { ...reading, time: reading.time.toISOString() } })
     );
+    memo.set(stationId, { at: Date.now(), reading, fromCache: false });
     return { ...reading, fromCache: false };
   } catch (err) {
     const raw = localStorage.getItem(CACHE + stationId);
     if (raw) {
       const c = JSON.parse(raw);
-      return { ...c.reading, time: new Date(c.reading.time), fromCache: true };
+      const reading = { ...c.reading, time: new Date(c.reading.time) };
+      memo.set(stationId, { at: Date.now(), reading, fromCache: true });
+      return { ...reading, fromCache: true };
     }
     throw err;
   }
@@ -113,7 +121,7 @@ export function buoyHtml(reading, stationId) {
   const per = reading.periodS != null ? `@ ${Math.round(reading.periodS)} s` : "";
   return `
     <div class="buoy-reading">
-      <div class="buoy-big">${reading.heightFt.toFixed(1)} ft<span>${per}</span></div>
+      <div class="buoy-big">${hgt(reading.heightFt, 1)}<span>${per}</span></div>
       <div class="buoy-sub">${dir} · ${meta.name} buoy (NDBC ${meta.ndbc})</div>
       <div class="buoy-sub">observed ${obsAgo(reading.time)}${reading.fromCache ? " · cached" : ""}</div>
     </div>`;

@@ -1013,3 +1013,72 @@ main { padding-top: 18px; }
   .rail-head { align-items: start; flex-direction: column; }
   .rail-head span { text-align: left; }
 }
+
+/* ---------- Units settings popover ---------- */
+.settings { position: relative; }
+.settings > summary {
+  list-style: none;
+  cursor: pointer;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.settings > summary::-webkit-details-marker { display: none; }
+.settings[open] > summary { background: rgba(255, 255, 255, 0.26); }
+.settings-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  width: 230px;
+  max-width: min(82vw, 260px);
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+.settings[open] .settings-panel { display: flex; }
+.setting { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.setting > span { font-size: 0.85rem; font-weight: 600; }
+.seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .seg { background: rgba(120, 120, 120, 0.16); }
+}
+.seg button {
+  min-width: 44px;
+  min-height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.seg button.active { background: var(--ink); color: var(--card); }
+
+/* ---------- Conditions summary (surf now-panel) ---------- */
+.now-summary {
+  margin: 2px 0 14px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
