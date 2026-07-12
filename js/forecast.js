@@ -47,13 +47,20 @@ function staleLabel(savedAt) {
 }
 
 // ---------- state ----------
+// Only an explicit deep link (URL hash) may switch the region — a region
+// toggled elsewhere on the site must survive navigation here. A remembered
+// spot from the other region yields to the persisted region's default break.
+const hashSpot = getSpot(location.hash.slice(1));
 let spot =
-  getSpot(location.hash.slice(1)) ||
+  hashSpot ||
   getSpot(localStorage.getItem("aloha:lastSpot")) ||
   getSpot(getRegion().defaultSpot) ||
   SPOTS[0];
-// A deep-linked or remembered spot decides the region (so its search filters).
-if (spot.state && spot.state !== getRegionId()) setRegion(spot.state);
+if (hashSpot?.state && hashSpot.state !== getRegionId()) {
+  setRegion(hashSpot.state); // deep link wins → follow it
+} else if (spot.state && spot.state !== getRegionId()) {
+  spot = getSpot(getRegion().defaultSpot) || spot; // stay in the toggled region
+}
 let ocean = null;
 let tides = null;
 let selectedDay = 0; // index into the day buckets
