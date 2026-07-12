@@ -43,10 +43,10 @@ function aqiInfo(aqi) {
 const vog = (so2) =>
   so2 == null ? "" : so2 < 40 ? "vog: low" : so2 < 200 ? "vog: moderate" : "vog: high";
 
-export function airHtml(a) {
+export function airHtml(a, showVog = true) {
   if (!a || a.usAqi == null) return `<p class="muted small">Air quality unavailable.</p>`;
   const info = aqiInfo(a.usAqi);
-  const sub = [a.pm25 != null ? `PM2.5 ${Math.round(a.pm25)}` : null, vog(a.so2)].filter(Boolean).join(" · ");
+  const sub = [a.pm25 != null ? `PM2.5 ${Math.round(a.pm25)}` : null, showVog ? vog(a.so2) : null].filter(Boolean).join(" · ");
   return `
     <div class="buoy-reading">
       <div class="buoy-big">AQI ${Math.round(a.usAqi)}</div>

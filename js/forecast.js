@@ -8,6 +8,7 @@ import { surfQuality, surfFaceRange, compass, windRelation, conditionsSummary } 
 import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
 import { hgt, hgtRange, temp, spd, hVal, hUnit, initSettings } from "./units.js";
+import { getRegion, getRegionId, setRegion, initRegionToggle } from "./regions.js";
 
 // Units-aware breaking-face label ("2–3 ft" / "0.9 m" / "Flat").
 function faceStr(waveFt) {
@@ -49,8 +50,10 @@ function staleLabel(savedAt) {
 let spot =
   getSpot(location.hash.slice(1)) ||
   getSpot(localStorage.getItem("aloha:lastSpot")) ||
-  getSpot("canoes") ||
+  getSpot(getRegion().defaultSpot) ||
   SPOTS[0];
+// A deep-linked or remembered spot decides the region (so its search filters).
+if (spot.state && spot.state !== getRegionId()) setRegion(spot.state);
 let ocean = null;
 let tides = null;
 let selectedDay = 0; // index into the day buckets
@@ -407,10 +410,13 @@ function renderResults(list) {
   );
 }
 
+// Search is scoped to the active region (Hawaiʻi or California).
+const regionResults = (q) => searchSpots(q).filter((s) => s.state === getRegionId());
+
 function wireSearch() {
   const input = $("#search-input");
-  input.addEventListener("input", () => renderResults(searchSpots(input.value)));
-  input.addEventListener("focus", () => renderResults(searchSpots(input.value)));
+  input.addEventListener("input", () => renderResults(regionResults(input.value)));
+  input.addEventListener("focus", () => renderResults(regionResults(input.value)));
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".search-box")) $("#search-results").hidden = true;
   });
@@ -484,10 +490,20 @@ function wireShare() {
   });
 }
 
+// Switching region jumps to that region's default break.
+function switchRegionSurf() {
+  spot = getSpot(getRegion().defaultSpot) || spot;
+  selectedDay = 0;
+  localStorage.setItem("aloha:lastSpot", spot.id);
+  history.replaceState(null, "", `#${spot.id}`);
+  load();
+}
+
 function init() {
   wireSearch();
   wireShare();
   initSettings(applyUnits);
+  initRegionToggle(switchRegionSurf);
   $("#refresh-btn").addEventListener("click", load);
   load();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("./service-worker.js").catch(() => {});

@@ -8,22 +8,16 @@ import { renderAlerts, renderBuoy } from "./feeds.js";
 import { jellyfishHtml } from "./jellyfish.js";
 import { getAir, airHtml } from "./air.js";
 import { hgt, temp, spd, hVal, hUnit, initSettings } from "./units.js";
+import { getRegion, initRegionToggle } from "./regions.js";
 
 // ---------------------------------------------------------------------------
-// Locations — all near Waikiki / south & east shore of Oahu, which the
-// NOAA Honolulu station (1612340) represents accurately for tides. Surf, wind,
-// UV and sun are computed from each spot's own coordinates.
+// Region + locations — driven by the Hawaiʻi ⇄ California toggle (regions.js).
+// The current region supplies the location list, timezone, tide station, buoy
+// and all the region-specific copy.
 // ---------------------------------------------------------------------------
-const HONOLULU = "1612340";
-const LOCATIONS = [
-  { id: "waikiki", name: "Waikiki Beach", lat: 21.2762, lng: -157.8267, station: HONOLULU },
-  { id: "kaimana", name: "Kaimana / Sans Souci", lat: 21.266, lng: -157.823, station: HONOLULU },
-  { id: "alamoana", name: "Ala Moana Bowls", lat: 21.288, lng: -157.852, station: HONOLULU },
-  { id: "hanauma", name: "Hanauma Bay (snorkel)", lat: 21.269, lng: -157.6938, station: HONOLULU },
-  { id: "diamondhead", name: "Diamond Head", lat: 21.2545, lng: -157.805, station: HONOLULU },
-];
-
-const TZ = "Pacific/Honolulu";
+let region = getRegion();
+let LOCATIONS = region.locations;
+const TZ = () => region.tz;
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -31,10 +25,10 @@ const TZ = "Pacific/Honolulu";
 const fmtTime = (d) =>
   d == null
     ? "—"
-    : d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+    : d.toLocaleTimeString("en-US", { timeZone: TZ(), hour: "numeric", minute: "2-digit" });
 
 const fmtDay = (d) =>
-  d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric" });
+  d.toLocaleDateString("en-US", { timeZone: TZ(), weekday: "short", month: "short", day: "numeric" });
 
 function compass(deg) {
   if (deg == null || Number.isNaN(deg)) return "";
@@ -59,23 +53,28 @@ function staleLabel(savedAt) {
   return `${hrs} hr ago`;
 }
 
-// Hawaii calendar-day anchored at local noon (good reference for sun times).
-function hstNoon(offsetDays = 0) {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+// UTC offset (seconds) for a timezone at a given instant — handles DST.
+function tzOffsetSec(tz, date) {
+  const p = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit",
+    day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(date);
+  const gv = (t) => Number(p.find((x) => x.type === t).value);
+  return Math.round((Date.UTC(gv("year"), gv("month") - 1, gv("day"), gv("hour"), gv("minute"), gv("second")) - date.getTime()) / 1000);
+}
+
+// The region's calendar-day anchored at local noon (a safe reference for sun).
+function localNoon(offsetDays = 0) {
+  const tz = TZ();
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const get = (t) => Number(parts.find((p) => p.type === t).value);
-  // 22:00 UTC == 12:00 HST (UTC-10, no DST)
-  return new Date(Date.UTC(get("year"), get("month") - 1, get("day") + offsetDays, 22, 0));
+  const guess = Date.UTC(get("year"), get("month") - 1, get("day") + offsetDays, 12, 0);
+  return new Date(guess - tzOffsetSec(tz, new Date(guess)) * 1000);
 }
 
 const isSameHstDay = (a, b) =>
-  a.toLocaleDateString("en-CA", { timeZone: TZ }) ===
-  b.toLocaleDateString("en-CA", { timeZone: TZ });
+  a.toLocaleDateString("en-CA", { timeZone: TZ() }) ===
+  b.toLocaleDateString("en-CA", { timeZone: TZ() });
 
 // ---------------------------------------------------------------------------
 // Descriptors / advice
@@ -121,7 +120,7 @@ function snorkelScore(hour, sun) {
   if (hour.windMph != null) score -= hour.windMph * 2.2;
 
   // Best light/visibility mid-day; gentle penalty toward the edges of the day.
-  const hr = Number(t.toLocaleTimeString("en-US", { timeZone: TZ, hour12: false, hour: "2-digit" }));
+  const hr = Number(t.toLocaleTimeString("en-US", { timeZone: TZ(), hour12: false, hour: "2-digit" }));
   if (hr < 9) score -= (9 - hr) * 6;
   if (hr > 15) score -= (hr - 15) * 6;
 
@@ -187,10 +186,10 @@ function briefLevel(hour, sun) {
 }
 
 function nextBestWindow(ocean, sun) {
-  const today = bestWindows(ocean.hourly, sun, hstNoon(0), 45)[0];
+  const today = bestWindows(ocean.hourly, sun, localNoon(0), 45)[0];
   if (today) return today;
-  const tomorrowSun = getSunTimes(hstNoon(1), activeCoords().lat, activeCoords().lng);
-  return bestWindows(ocean.hourly, tomorrowSun, hstNoon(1), 45)[0] || null;
+  const tomorrowSun = getSunTimes(localNoon(1), activeCoords().lat, activeCoords().lng);
+  return bestWindows(ocean.hourly, tomorrowSun, localNoon(1), 45)[0] || null;
 }
 
 function renderTripBrief(ocean, tides, sun) {
@@ -339,7 +338,7 @@ function renderNowCards(ocean, tides) {
     `<div class="stat-big">${big}</div><div class="stat-sub">${sub}</div></div>`;
 
   $("#now-cards").innerHTML = [
-    card("🌡️", "Air", temp(cur.tempF), "Waikiki air temp", "#f97362"),
+    card("🌡️", "Air", temp(cur.tempF), "air temp", "#f97362"),
     card("🌊", "Surf", hgt(waterWave), waveDesc(waterWave), "#0d9488"),
     card("💨", "Wind", spd(cur.windMph), `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`, "#0ea5e9"),
     card("🔆", "UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat, "#f59e0b"),
@@ -349,7 +348,7 @@ function renderNowCards(ocean, tides) {
 
 function renderSun() {
   const { lat, lng } = activeCoords();
-  const today = getSunTimes(hstNoon(0), lat, lng);
+  const today = getSunTimes(localNoon(0), lat, lng);
   const row = (label, val) => `<div class="kv"><span>${label}</span><strong>${val}</strong></div>`;
   $("#sun-card").innerHTML =
     row("Sunrise", fmtTime(today.sunrise)) +
@@ -417,14 +416,14 @@ function renderUv(ocean) {
   const peak = today.reduce((m, x) => (x.uv > (m?.uv ?? -1) ? x : m), null);
   if (peak) {
     const info = uvInfo(peak.uv);
-    $("#uv-note").textContent = `Peak UV today ~${Math.round(peak.uv)} (${info.cat}) around ${fmtTime(peak.time)}. ${info.advice} Hawaii law requires reef-safe sunscreen (no oxybenzone/octinoxate).`;
+    $("#uv-note").textContent = `Peak UV today ~${Math.round(peak.uv)} (${info.cat}) around ${fmtTime(peak.time)}. ${info.advice} ${region.sunscreenNote}`;
   }
 }
 
 function renderSnorkel(ocean) {
   const { lat, lng } = activeCoords();
-  const sunToday = getSunTimes(hstNoon(0), lat, lng);
-  const sunTomorrow = getSunTimes(hstNoon(1), lat, lng);
+  const sunToday = getSunTimes(localNoon(0), lat, lng);
+  const sunTomorrow = getSunTimes(localNoon(1), lat, lng);
 
   const block = (title, windows) => {
     if (!windows.length)
@@ -440,10 +439,10 @@ function renderSnorkel(ocean) {
     return `<div class="snorkel-day"><h4>${title}</h4>${items}</div>`;
   };
 
-  const t = bestWindows(ocean.hourly, sunToday, hstNoon(0));
-  const tm = bestWindows(ocean.hourly, sunTomorrow, hstNoon(1));
+  const t = bestWindows(ocean.hourly, sunToday, localNoon(0));
+  const tm = bestWindows(ocean.hourly, sunTomorrow, localNoon(1));
   $("#snorkel-windows").innerHTML =
-    block(`Today · ${fmtDay(hstNoon(0))}`, t) + block(`Tomorrow · ${fmtDay(hstNoon(1))}`, tm);
+    block(`Today · ${fmtDay(localNoon(0))}`, t) + block(`Tomorrow · ${fmtDay(localNoon(1))}`, tm);
 }
 
 function setStatus(ocean, tides) {
@@ -471,7 +470,7 @@ async function load() {
   const sun = renderSun();
 
   try {
-    const [tides, ocean] = await Promise.all([getTides(current.station, 3), getOcean(lat, lng, "Pacific/Honolulu")]);
+    const [tides, ocean] = await Promise.all([getTides(current.station, 3), getOcean(lat, lng, TZ())]);
     last = { ocean, tides, sun };
     renderTripBrief(ocean, tides, sun);
     renderHourPlan(ocean, sun);
@@ -493,10 +492,10 @@ async function load() {
   }
 
   // Independent feeds — never block or break the main dashboard.
-  renderAlerts("HI", "Oahu", "Pacific/Honolulu");
-  renderBuoy("233"); // Pearl Harbor / Māmala Bay (south-shore reference)
+  renderAlerts(region.alertArea, current.alertRegion, TZ());
+  renderBuoy(current.buoy);
   const jelly = $("#jelly");
-  if (jelly) jelly.innerHTML = jellyfishHtml(); // on-device, no network
+  if (jelly && region.jellyfish) jelly.innerHTML = jellyfishHtml(); // HI only
   loadAir();
 }
 
@@ -507,21 +506,52 @@ async function loadAir() {
   el.innerHTML = `<p class="muted small">Loading…</p>`;
   try {
     const { lat, lng } = activeCoords();
-    el.innerHTML = airHtml(await getAir(lat, lng));
+    el.innerHTML = airHtml(await getAir(lat, lng), region.vog);
   } catch {
     el.innerHTML = `<p class="muted small">Air quality unavailable right now.</p>`;
   }
 }
 
-function buildLocationSelect() {
+function refreshLocationOptions() {
   const sel = $("#location-select");
   sel.innerHTML = LOCATIONS.map((l) => `<option value="${l.id}">${l.name}</option>`).join("");
   sel.value = current.id;
-  sel.addEventListener("change", () => {
-    current = LOCATIONS.find((l) => l.id === sel.value) || LOCATIONS[0];
+}
+
+function wireLocationSelect() {
+  $("#location-select").addEventListener("change", (e) => {
+    current = LOCATIONS.find((l) => l.id === e.target.value) || LOCATIONS[0];
     customCoords = null;
     load();
   });
+}
+
+// Re-skin the dashboard for the current region (copy, links, region-only cards).
+function applyRegionContent() {
+  const set = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
+  const panel = document.getElementById("jelly-panel");
+  if (panel) panel.hidden = !region.jellyfish;
+  const airH = document.querySelector("#air-panel h2");
+  if (airH) airH.textContent = region.airTitle;
+  set("#air-note", region.airNote);
+  set("#snorkel-reminder", region.snorkelReminder);
+  set("#tide-note", `Heights vs. MLLW · ${region.tideRef}`);
+  set("#footer-tz", `Times in ${region.tzLabel}.`);
+  const tagline = document.querySelector(".hero-text .tagline");
+  if (tagline) tagline.textContent = `${region.name} · tide · sun · surf`;
+  set("#safety-links", region.safety
+    .map((s) => `<a href="${s.href}" target="_blank" rel="noopener"><strong>${s.title}</strong><span>${s.sub}</span></a>`)
+    .join(""));
+}
+
+function switchRegion() {
+  region = getRegion();
+  LOCATIONS = region.locations;
+  current = LOCATIONS[0];
+  customCoords = null;
+  refreshLocationOptions();
+  applyRegionContent();
+  load();
 }
 
 function wireGeo() {
@@ -554,13 +584,16 @@ function applyUnits() {
     renderTides(tides);
     renderSurf(ocean);
   }
-  renderBuoy("233"); // buoy height re-renders (in-memory cache → instant)
+  renderBuoy(current.buoy); // buoy height re-renders (in-memory cache → instant)
 }
 
 function init() {
-  buildLocationSelect();
+  wireLocationSelect();
+  refreshLocationOptions();
   wireGeo();
   initSettings(applyUnits);
+  initRegionToggle(switchRegion);
+  applyRegionContent();
   $("#refresh-btn").addEventListener("click", load);
   load();
 
