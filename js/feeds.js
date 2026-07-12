@@ -4,12 +4,13 @@
 import { getAlerts, filterAlerts, alertsHtml } from "./alerts.js";
 import { getBuoy, buoyHtml, BUOYS } from "./buoy.js";
 
-/** Render the NWS advisory banner for an island into #alerts. Never throws. */
-export async function renderAlerts(island) {
+/** Render the NWS advisory banner into #alerts. Never throws.
+ *  @param area two-letter state ("HI"/"CA"), region name, and display tz. */
+export async function renderAlerts(area, region, tz) {
   const el = document.getElementById("alerts");
   if (!el) return;
-  const { list } = await getAlerts();
-  el.innerHTML = alertsHtml(filterAlerts(list, island));
+  const { list } = await getAlerts(area);
+  el.innerHTML = alertsHtml(filterAlerts(list, region), tz);
 }
 
 /** Render the latest reading for a CDIP buoy into #buoy (hides panel if none). */

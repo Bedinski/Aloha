@@ -7,26 +7,27 @@
 
 import { fetchJSON } from "./store.js";
 
-const TZ = "Pacific/Honolulu";
-const URL = "https://api.weather.gov/alerts/active?area=HI";
+const fmtTime = (d, tz = "Pacific/Honolulu") =>
+  d == null ? "" : d.toLocaleString("en-US", { timeZone: tz, weekday: "short", hour: "numeric", minute: "2-digit" });
 
-const fmtTime = (d) =>
-  d == null ? "" : d.toLocaleString("en-US", { timeZone: TZ, weekday: "short", hour: "numeric", minute: "2-digit" });
-
-// Match an alert's areaDesc to an island. Statewide/severe alerts show anyway.
-// Keyed by an ASCII-normalised island name (see canonIsland) so the ʻokina in
-// "Hawaiʻi"/"Kauaʻi" can't cause a mismatch. Tokens are island-SPECIFIC:
-// generic words like "windward"/"leeward"/"north shore" are intentionally
-// avoided because they also appear in other islands' marine-zone names.
-const ISLAND_RE = {
+// Match an alert's areaDesc to a region. Statewide/severe alerts show anyway.
+// Keyed by an ASCII-normalised region name (see canon). Tokens are
+// region-SPECIFIC: generic words like "windward"/"leeward"/"north shore" are
+// avoided because they also appear in other regions' marine-zone names.
+const REGION_RE = {
+  // Hawaii (by island)
   oahu: /oahu|honolulu|waikiki|waianae|ko.?olau|kaiwi|mamala|kaena|\bewa\b|kailua|kaneohe/i,
   maui: /maui|moloka|lana.?i|kahoolawe|maalaea|\bhana\b|kahului|lahaina|kihei/i,
   kauai: /kaua|niihau|ni.ihau|hanalei|lihue|poipu|na ?pali/i,
   hawaii: /big island|hawaii island|\bkona\b|hilo|kohala|\bpuna\b|ka.u\b|south point|saddle|waikoloa/i,
+  // Southern California (by area)
+  losangeles: /los angeles|santa monica|malibu|san pedro|palos verdes|catalina|long beach|manhattan beach|hermosa|redondo|venice|marina del rey/i,
+  orangecounty: /orange county|huntington|newport|laguna|san clemente|dana point|seal beach|sunset beach/i,
+  sandiego: /san diego|la jolla|del mar|oceanside|carlsbad|encinitas|cardiff|solana|coronado|point loma|mission (bay|beach)|pacific beach|ocean beach|imperial beach|sunset cliffs|torrey/i,
 };
 
-// Strip the ʻokina/diacritics: "Hawaiʻi" -> "hawaii", "Kauaʻi" -> "kauai".
-const canonIsland = (s) => (s || "").normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
+// Strip diacritics/ʻokina/spaces: "Hawaiʻi" -> "hawaii", "Orange County" -> "orangecounty".
+const canon = (s) => (s || "").normalize("NFD").replace(/[^a-z]/gi, "").toLowerCase();
 
 const SEV_RANK = { Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0 };
 const SEV_COLOR = {
@@ -56,16 +57,17 @@ const shorten = (areaDesc = "") => {
   return parts.length <= 2 ? parts.join(", ") : `${parts.slice(0, 2).join(", ")} +${parts.length - 2} more`;
 };
 
-// The alerts feed is statewide and island-independent, so cache it briefly in
-// memory — switching spots then just re-filters instead of re-hitting the API.
-let memo = null; // { at:number, list:Array }
+// The alerts feed is per-state (HI, CA, …) and region-independent, so cache
+// each state briefly in memory — switching spots then just re-filters.
+const memo = new Map(); // area -> { at:number, list:Array }
 const TTL_MS = 5 * 60 * 1000;
 
-/** @returns {Promise<{list:Array}>} — never throws. */
-export async function getAlerts() {
-  if (memo && Date.now() - memo.at < TTL_MS) return { list: memo.list };
+/** @param {string} area two-letter state (e.g. "HI", "CA"). Never throws. */
+export async function getAlerts(area = "HI") {
+  const cached = memo.get(area);
+  if (cached && Date.now() - cached.at < TTL_MS) return { list: cached.list };
   try {
-    const { data } = await fetchJSON(URL, "alerts:HI");
+    const { data } = await fetchJSON(`https://api.weather.gov/alerts/active?area=${area}`, `alerts:${area}`);
     const list = (data.features || []).map((f) => {
       const p = f.properties || {};
       return {
@@ -77,17 +79,17 @@ export async function getAlerts() {
         expires: p.ends || p.expires ? new Date(p.ends || p.expires) : null,
       };
     });
-    memo = { at: Date.now(), list };
+    memo.set(area, { at: Date.now(), list });
     return { list };
   } catch {
-    return { list: memo ? memo.list : [] };
+    return { list: cached ? cached.list : [] };
   }
 }
 
-/** Keep alerts relevant to an island (plus any Extreme/Severe), worst first,
+/** Keep alerts relevant to a region (plus any Extreme/Severe), worst first,
  *  de-duplicated by event (NWS often emits one feature per zone), capped. */
-export function filterAlerts(list, island) {
-  const re = ISLAND_RE[canonIsland(island)] || ISLAND_RE.oahu;
+export function filterAlerts(list, region) {
+  const re = REGION_RE[canon(region)] || /.^/; // no region match -> severe-only
   const relevant = list
     .filter((a) => re.test(a.areaDesc) || a.severity === "Extreme" || a.severity === "Severe")
     .sort((a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0));
@@ -102,12 +104,12 @@ export function filterAlerts(list, island) {
 }
 
 /** HTML for the alerts banner (empty string when there are none). */
-export function alertsHtml(list) {
+export function alertsHtml(list, tz) {
   if (!list.length) return "";
   return list
     .map((a) => {
       const color = SEV_COLOR[a.severity] || SEV_COLOR.Unknown;
-      const until = a.expires ? ` · until ${fmtTime(a.expires)}` : "";
+      const until = a.expires ? ` · until ${fmtTime(a.expires, tz)}` : "";
       return `<div class="alert" style="--ac:${color}">
         <div class="alert-event">${iconFor(a.event)} ${a.event}</div>
         <div class="alert-area">${shorten(a.areaDesc)}${until}</div>

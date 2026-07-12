@@ -10,18 +10,31 @@
 import { compass } from "./rating.js";
 import { hgt } from "./units.js";
 
-const ERDDAP =
-  "https://pae-paha.pacioos.hawaii.edu/erddap/tabledap/cdip_wave_agg.jsonp";
+// Two ERDDAP sources, same schema + JSONP query pattern. Hawaii buoys use the
+// PacIOOS mirror (proven); California buoys use CDIP's own national aggregate,
+// which the PacIOOS mirror does not carry.
+const PACIOOS = "https://pae-paha.pacioos.hawaii.edu/erddap/tabledap/cdip_wave_agg.jsonp";
+const CDIP = "https://erddap.cdip.ucsd.edu/erddap/tabledap/wave_agg.jsonp";
 const M_TO_FT = 3.28084;
 const CACHE = "aloha:buoy:";
 const MEMO_MS = 10 * 60 * 1000; // in-memory: avoid refetch on unit re-render
 const memo = new Map(); // stationId -> { at, reading }
 
-// CDIP station_id -> friendly metadata (NDBC number for reference).
+// CDIP station_id -> friendly metadata (NDBC number for reference). `src` picks
+// the ERDDAP host (default PacIOOS for Hawaii; CDIP for California).
 export const BUOYS = {
+  // Hawaii (PacIOOS)
   "106": { name: "Waimea Bay", ndbc: "51201" },
   "233": { name: "Pearl Harbor · Māmala Bay", ndbc: "51211" },
   "098": { name: "Mokapu Point", ndbc: "51202" },
+  // California (CDIP)
+  "028": { name: "Santa Monica Bay", ndbc: "46221", src: CDIP },
+  "092": { name: "San Pedro", ndbc: "46222", src: CDIP },
+  "045": { name: "Oceanside Offshore", ndbc: "46224", src: CDIP },
+  "100": { name: "Torrey Pines Outer", ndbc: "46225", src: CDIP },
+  "191": { name: "Point Loma South", ndbc: "46232", src: CDIP },
+  "093": { name: "Mission Bay Offshore", ndbc: "46231", src: CDIP },
+  "155": { name: "Imperial Beach", ndbc: "46235", src: CDIP },
 };
 
 // Load a JSONP URL by injecting a <script>; resolves with the callback payload.
@@ -57,7 +70,8 @@ function buildUrl(stationId) {
     `&time%3E=${since}` +
     `&waveFlagPrimary=1` +
     `&orderByMax(%22station_id,time%22)`;
-  return `${ERDDAP}?${query}`;
+  const base = BUOYS[stationId]?.src || PACIOOS;
+  return `${base}?${query}`;
 }
 
 // Parse ERDDAP's { table: { columnNames, rows } } into the latest reading.

@@ -1,4 +1,6 @@
-// spots.js — curated Hawaii surf-break database for the forecast page.
+// spots.js — curated surf-break database for the forecast page (Hawaii +
+// Southern California). Each spot carries a `tz` (IANA timezone) and `state`
+// so times and NWS alerts resolve correctly across regions.
 //
 // Each spot carries the coordinates used for the wave/wind model plus a
 // `facing` bearing: the compass direction (degrees) you look when facing the
@@ -17,6 +19,13 @@ export const STATIONS = {
   1611400: "Nāwiliwili, Kauaʻi",
   1617760: "Hilo",
   1617433: "Kawaihae",
+  // Southern California (NOAA CO-OPS)
+  9410840: "Santa Monica",
+  9410660: "Los Angeles",
+  9410583: "Newport (Balboa Pier)",
+  9410396: "Oceanside Harbor",
+  9410230: "La Jolla (Scripps)",
+  9410170: "San Diego",
 };
 
 // region "shore" groups spots for filtering; tideNote flags an approximate
@@ -76,6 +85,36 @@ export const SPOTS = [
   // ---- Kauai ----
   { id: "hanalei", name: "Hanalei Bay", island: "Kauaʻi", region: "Kauai", lat: 22.2050, lng: -159.5030, facing: 340, swellWindow: [300, 30], station: 1611400, tideNote: true, level: "Advanced" },
   { id: "poipu", name: "Poʻipū (PK's)", island: "Kauaʻi", region: "Kauai", lat: 21.8730, lng: -159.4580, facing: 190, swellWindow: [150, 230], station: 1611400, level: "Intermediate" },
+
+  // ================= Southern California =================
+  // Pacific Time (America/Los_Angeles, with DST). SoCal beaches generally face
+  // W→S and are shadowed from NW swell by Point Conception / the Channel
+  // Islands, so their windows favour S/SW (summer) and W (winter).
+  // ---- Los Angeles County ----
+  { id: "malibu", name: "Malibu (First Point)", island: "California", region: "Los Angeles", lat: 34.0367, lng: -118.6779, facing: 190, swellWindow: [140, 235], station: 9410840, buoy: "028", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "santa-monica", name: "Santa Monica", island: "California", region: "Los Angeles", lat: 34.0089, lng: -118.4973, facing: 215, swellWindow: [180, 260], station: 9410840, buoy: "028", tz: "America/Los_Angeles", state: "CA", level: "Beginner" },
+  { id: "venice", name: "Venice Beach", island: "California", region: "Los Angeles", lat: 33.9850, lng: -118.4695, facing: 235, swellWindow: [190, 280], station: 9410840, buoy: "028", tz: "America/Los_Angeles", state: "CA", level: "Beginner" },
+  { id: "el-porto", name: "El Porto (Manhattan Beach)", island: "California", region: "Los Angeles", lat: 33.9008, lng: -118.4210, facing: 250, swellWindow: [190, 300], station: 9410660, buoy: "092", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+
+  // ---- Orange County ----
+  { id: "huntington", name: "Huntington Beach (Pier)", island: "California", region: "Orange County", lat: 33.6553, lng: -118.0035, facing: 220, swellWindow: [175, 280], station: 9410583, buoy: "092", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "newport-56", name: "Newport Beach (Blackies)", island: "California", region: "Orange County", lat: 33.6189, lng: -117.9298, facing: 215, swellWindow: [175, 265], station: 9410583, buoy: "092", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "the-wedge", name: "The Wedge (Newport)", island: "California", region: "Orange County", lat: 33.5933, lng: -117.8817, facing: 200, swellWindow: [165, 235], station: 9410583, buoy: "092", tz: "America/Los_Angeles", state: "CA", level: "Expert" },
+  { id: "salt-creek", name: "Salt Creek (Dana Point)", island: "California", region: "Orange County", lat: 33.4783, lng: -117.7281, facing: 215, swellWindow: [175, 270], station: 9410583, buoy: "045", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "trestles", name: "Lower Trestles (San Clemente)", island: "California", region: "Orange County", lat: 33.3856, lng: -117.5931, facing: 225, swellWindow: [175, 285], station: 9410396, buoy: "045", tz: "America/Los_Angeles", state: "CA", level: "Advanced" },
+  { id: "t-street", name: "T-Street (San Clemente)", island: "California", region: "Orange County", lat: 33.4183, lng: -117.6169, facing: 220, swellWindow: [175, 275], station: 9410396, buoy: "045", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+
+  // ---- San Diego County ----
+  { id: "oceanside", name: "Oceanside (Pier)", island: "California", region: "San Diego", lat: 33.1930, lng: -117.3860, facing: 250, swellWindow: [195, 300], station: 9410396, buoy: "045", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "swamis", name: "Swamis (Encinitas)", island: "California", region: "San Diego", lat: 33.0345, lng: -117.2925, facing: 250, swellWindow: [195, 300], station: 9410396, buoy: "045", tz: "America/Los_Angeles", state: "CA", level: "Advanced" },
+  { id: "blacks", name: "Blacks Beach (Torrey Pines)", island: "California", region: "San Diego", lat: 32.8890, lng: -117.2520, facing: 265, swellWindow: [200, 310], station: 9410230, buoy: "100", tz: "America/Los_Angeles", state: "CA", level: "Advanced" },
+  { id: "scripps", name: "Scripps Pier (La Jolla)", island: "California", region: "San Diego", lat: 32.8670, lng: -117.2540, facing: 255, swellWindow: [200, 300], station: 9410230, buoy: "100", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "la-jolla-shores", name: "La Jolla Shores", island: "California", region: "San Diego", lat: 32.8570, lng: -117.2560, facing: 250, swellWindow: [200, 295], station: 9410230, buoy: "100", tz: "America/Los_Angeles", state: "CA", level: "Beginner" },
+  { id: "windansea", name: "Windansea (La Jolla)", island: "California", region: "San Diego", lat: 32.8330, lng: -117.2790, facing: 250, swellWindow: [195, 300], station: 9410230, buoy: "100", tz: "America/Los_Angeles", state: "CA", level: "Advanced" },
+  { id: "pacific-beach", name: "Pacific Beach (Tourmaline)", island: "California", region: "San Diego", lat: 32.8020, lng: -117.2650, facing: 260, swellWindow: [200, 305], station: 9410170, buoy: "093", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "ocean-beach", name: "Ocean Beach", island: "California", region: "San Diego", lat: 32.7490, lng: -117.2530, facing: 260, swellWindow: [200, 305], station: 9410170, buoy: "093", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
+  { id: "sunset-cliffs", name: "Sunset Cliffs (Point Loma)", island: "California", region: "San Diego", lat: 32.7160, lng: -117.2540, facing: 250, swellWindow: [195, 300], station: 9410170, buoy: "191", tz: "America/Los_Angeles", state: "CA", level: "Advanced" },
+  { id: "imperial-beach", name: "Imperial Beach", island: "California", region: "San Diego", lat: 32.5790, lng: -117.1350, facing: 250, swellWindow: [200, 295], station: 9410170, buoy: "155", tz: "America/Los_Angeles", state: "CA", level: "Intermediate" },
 ];
 
 // Nearest real-time wave buoy (CDIP station_id) per region — see buoy.js.
@@ -87,7 +126,11 @@ const REGION_BUOY = {
   "East Side": "098", // Mokapu Point
   "West Side": "106", // catches the same NW swells
 };
-for (const s of SPOTS) s.buoy = REGION_BUOY[s.region] || null;
+for (const s of SPOTS) {
+  s.buoy = s.buoy || REGION_BUOY[s.region] || null; // explicit per-spot buoy wins
+  s.tz = s.tz || "Pacific/Honolulu";
+  s.state = s.state || "HI";
+}
 
 /** Case-insensitive search over name / region / island. Returns all on empty. */
 export function searchSpots(query) {

@@ -471,7 +471,7 @@ async function load() {
   const sun = renderSun();
 
   try {
-    const [tides, ocean] = await Promise.all([getTides(current.station), getOcean(lat, lng)]);
+    const [tides, ocean] = await Promise.all([getTides(current.station, 3), getOcean(lat, lng, "Pacific/Honolulu")]);
     last = { ocean, tides, sun };
     renderTripBrief(ocean, tides, sun);
     renderHourPlan(ocean, sun);
@@ -493,7 +493,7 @@ async function load() {
   }
 
   // Independent feeds — never block or break the main dashboard.
-  renderAlerts("Oahu");
+  renderAlerts("HI", "Oahu", "Pacific/Honolulu");
   renderBuoy("233"); // Pearl Harbor / Māmala Bay (south-shore reference)
   const jelly = $("#jelly");
   if (jelly) jelly.innerHTML = jellyfishHtml(); // on-device, no network

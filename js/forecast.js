@@ -15,16 +15,18 @@ function faceStr(waveFt) {
   return f.label === "Flat" || f.label === "—" ? f.label : hgtRange(f.min, f.max);
 }
 
-const TZ = "Pacific/Honolulu";
 const $ = (s) => document.querySelector(s);
+
+// All times display in the SELECTED spot's timezone (Hawaii, California, …).
+function TZ() { return (typeof spot !== "undefined" && spot && spot.tz) || "Pacific/Honolulu"; }
 
 // ---------- formatting ----------
 const fmtTime = (d) =>
-  d == null ? "—" : d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
-const hstHour = (d) => Number(d.toLocaleString("en-US", { timeZone: TZ, hour12: false, hour: "2-digit" }));
-const dayKey = (d) => d.toLocaleDateString("en-CA", { timeZone: TZ });
-const weekday = (d) => d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" });
-const monthDay = (d) => d.toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric" });
+  d == null ? "—" : d.toLocaleTimeString("en-US", { timeZone: TZ(), hour: "numeric", minute: "2-digit" });
+const localHour = (d) => Number(d.toLocaleString("en-US", { timeZone: TZ(), hour12: false, hour: "2-digit" }));
+const dayKey = (d) => d.toLocaleDateString("en-CA", { timeZone: TZ() });
+const weekday = (d) => d.toLocaleDateString("en-US", { timeZone: TZ(), weekday: "short" });
+const monthDay = (d) => d.toLocaleDateString("en-US", { timeZone: TZ(), month: "short", day: "numeric" });
 
 function relDayLabel(d) {
   const today = dayKey(new Date());
@@ -66,7 +68,7 @@ function bucketDays(hourly) {
 
 const nearestHourTo = (hours, targetHstHour) =>
   hours.reduce((best, h) =>
-    best == null || Math.abs(hstHour(h.time) - targetHstHour) < Math.abs(hstHour(best.time) - targetHstHour) ? h : best,
+    best == null || Math.abs(localHour(h.time) - targetHstHour) < Math.abs(localHour(best.time) - targetHstHour) ? h : best,
   null);
 
 function nearestToNow(hours) {
@@ -132,7 +134,7 @@ function bestSessions(days) {
   for (const hours of days) {
     let run = null;
     for (const h of hours) {
-      if (h.time.getTime() < Date.now() - 3600000 || hstHour(h.time) < 6 || hstHour(h.time) > 18) {
+      if (h.time.getTime() < Date.now() - 3600000 || localHour(h.time) < 6 || localHour(h.time) > 18) {
         if (run) { candidates.push(run); run = null; }
         continue;
       }
@@ -167,14 +169,14 @@ function bestSessions(days) {
 
   return days
     .flat()
-    .filter((h) => h.time.getTime() >= Date.now() - 3600000 && hstHour(h.time) >= 6 && hstHour(h.time) <= 18)
+    .filter((h) => h.time.getTime() >= Date.now() - 3600000 && localHour(h.time) >= 6 && localHour(h.time) <= 18)
     .map((h) => ({ start: h.time, end: new Date(h.time.getTime() + 3600000), avg: rate(h).score, best: { h, r: rate(h) }, face: faceStr(h.waveFt), tide: tideAt(h.time), trend: tideTrend(h.time) }))
     .sort((a, b) => b.avg - a.avg)
     .slice(0, 3);
 }
 
 function dayStats(hours) {
-  const daylight = hours.filter((h) => hstHour(h.time) >= 6 && hstHour(h.time) <= 19 && h.waveFt != null);
+  const daylight = hours.filter((h) => localHour(h.time) >= 6 && localHour(h.time) <= 19 && h.waveFt != null);
   const faces = daylight.map((h) => h.waveFt);
   let faceLabel = "—";
   if (faces.length) {
@@ -333,7 +335,7 @@ function renderDayDetail(days) {
   if (!hours.length) { $("#day-detail").innerHTML = ""; return; }
   const dayDate = hours[0].time;
   const sun = getSunTimes(hours[0].time, spot.lat, spot.lng);
-  const daylight = hours.filter((h) => hstHour(h.time) >= 6 && hstHour(h.time) <= 18 && h.waveFt != null);
+  const daylight = hours.filter((h) => localHour(h.time) >= 6 && localHour(h.time) <= 18 && h.waveFt != null);
   const best = daylight
     .map((h) => ({ h, r: rate(h) }))
     .sort((a, b) => b.r.score - a.r.score)[0] || null;
@@ -429,7 +431,7 @@ async function load() {
   $("#status-line").innerHTML = `<span class="badge">Loading ${spot.name}…</span>`;
   $("#error-banner").hidden = true;
   try {
-    [ocean, tides] = await Promise.all([getOcean(spot.lat, spot.lng), getTides(spot.station, 7)]);
+    [ocean, tides] = await Promise.all([getOcean(spot.lat, spot.lng, spot.tz), getTides(spot.station, 7)]);
     const days = renderNow();
     renderSessions(days);
     renderDayStrip(days);
@@ -448,8 +450,8 @@ async function load() {
     console.error(err);
   }
 
-  // Independent feeds — scoped to the selected spot's island/buoy.
-  renderAlerts(spot.island);
+  // Independent feeds — scoped to the selected spot's state/region/buoy.
+  renderAlerts(spot.state || "HI", spot.state === "CA" ? spot.region : spot.island, spot.tz);
   renderBuoy(spot.buoy);
 }
 

@@ -12,6 +12,9 @@ const isoT = (i, sep) => {
   const p = fmtParts(new Date(baseUTC + i * 3600000), true);
   return `${g(p, "year")}-${g(p, "month")}-${g(p, "day")}${sep}${g(p, "hour")}:00`;
 };
+// UTC wall-clock string, matching NOAA's time_zone=gmt output.
+const gmtT = (i) => new Date(baseUTC + i * 3600000).toISOString().slice(0, 16).replace("T", " ");
+const HON_OFFSET = -36000; // Pacific/Honolulu utc_offset_seconds
 const N = 168;
 const marineHourly = { time: [], wave_height: [], wave_direction: [], wave_period: [], wave_peak_period: [],
   swell_wave_height: [], swell_wave_period: [], swell_wave_peak_period: [], swell_wave_direction: [],
@@ -40,17 +43,23 @@ for (let i = 0; i < N; i++) {
 const tideHilo = { predictions: [] };
 const tideH = { predictions: [] };
 for (let d = 0; d < 3; d++) {
-  tideHilo.predictions.push({ t: isoT(d * 24 + 4, " "), v: "0.20", type: "L" });
-  tideHilo.predictions.push({ t: isoT(d * 24 + 10, " "), v: "1.85", type: "H" });
-  tideHilo.predictions.push({ t: isoT(d * 24 + 16, " "), v: "0.55", type: "L" });
-  tideHilo.predictions.push({ t: isoT(d * 24 + 22, " "), v: "1.40", type: "H" });
+  tideHilo.predictions.push({ t: gmtT(d * 24 + 4), v: "0.20", type: "L" });
+  tideHilo.predictions.push({ t: gmtT(d * 24 + 10), v: "1.85", type: "H" });
+  tideHilo.predictions.push({ t: gmtT(d * 24 + 16), v: "0.55", type: "L" });
+  tideHilo.predictions.push({ t: gmtT(d * 24 + 22), v: "1.40", type: "H" });
 }
-for (let i = 0; i < 72; i++) tideH.predictions.push({ t: isoT(i, " "), v: (1 + Math.sin(i / 3)).toFixed(3) });
+for (let i = 0; i < 72; i++) tideH.predictions.push({ t: gmtT(i), v: (1 + Math.sin(i / 3)).toFixed(3) });
 const alertsGeo = { features: [
   { id: "a1", properties: { event: "High Surf Advisory", severity: "Moderate", headline: "High Surf Advisory",
     areaDesc: "Oahu North Shore; Oahu West Facing Shores", ends: new Date(Date.now() + 6 * 3.6e6).toISOString() } },
   { id: "a2", properties: { event: "Small Craft Advisory", severity: "Moderate", headline: "Small Craft Advisory",
     areaDesc: "Kaiwi Channel; Oahu Windward Waters", ends: new Date(Date.now() + 12 * 3.6e6).toISOString() } },
+] };
+const alertsCA = { features: [
+  { id: "c1", properties: { event: "High Surf Advisory", severity: "Moderate", headline: "High Surf Advisory",
+    areaDesc: "San Diego County Coastal Areas; Orange County Coastal", ends: new Date(Date.now() + 8 * 3.6e6).toISOString() } },
+  { id: "c2", properties: { event: "Beach Hazards Statement", severity: "Moderate", headline: "Beach Hazards Statement",
+    areaDesc: "San Diego County Coastal Areas", ends: new Date(Date.now() + 10 * 3.6e6).toISOString() } },
 ] };
 function buoyJsonp(url) {
   const cb = (url.match(/\.jsonp=([^&]+)/) || [])[1] || "cb";
@@ -60,14 +69,15 @@ function buoyJsonp(url) {
   return `${cb}(${JSON.stringify(table)});`;
 }
 function mockFor(url) {
-  if (url.includes("marine-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ hourly: marineHourly }) };
+  if (url.includes("marine-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ utc_offset_seconds: HON_OFFSET, hourly: marineHourly }) };
   if (url.includes("air-quality-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ hourly: airHourly }) };
   if (url.includes("api.open-meteo.com/v1/forecast")) return { ct: "application/json", body: JSON.stringify({
+    utc_offset_seconds: HON_OFFSET,
     current: { temperature_2m: 83, wind_speed_10m: 9, wind_direction_10m: 60, wind_gusts_10m: 17, uv_index: 8 }, hourly: wxHourly }) };
   if (url.includes("tidesandcurrents.noaa.gov") && url.includes("interval=hilo")) return { ct: "application/json", body: JSON.stringify(tideHilo) };
   if (url.includes("tidesandcurrents.noaa.gov")) return { ct: "application/json", body: JSON.stringify(tideH) };
-  if (url.includes("api.weather.gov")) return { ct: "application/geo+json", body: JSON.stringify(alertsGeo) };
-  if (url.includes("pae-paha.pacioos.hawaii.edu")) return { ct: "application/javascript", body: buoyJsonp(url) };
+  if (url.includes("api.weather.gov")) return { ct: "application/geo+json", body: JSON.stringify(url.includes("area=CA") ? alertsCA : alertsGeo) };
+  if (url.includes("pae-paha.pacioos.hawaii.edu") || url.includes("erddap.cdip.ucsd.edu")) return { ct: "application/javascript", body: buoyJsonp(url) };
   return null;
 }
 export async function attachMocks(page) {

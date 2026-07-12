@@ -17,7 +17,7 @@ function buildUrl(station, interval, days) {
     range: String(days * 24), // hours
     station,
     datum: "MLLW",
-    time_zone: "lst_ldt", // local station time
+    time_zone: "gmt", // request UTC so parsing is timezone-agnostic
     units: "english", // feet
     interval, // "hilo" or "h"
     format: "json",
@@ -25,13 +25,13 @@ function buildUrl(station, interval, days) {
   return `${BASE}?${p.toString()}`;
 }
 
-// NOAA returns local-station wall-clock strings like "2026-06-08 14:30".
-// Treat them as Hawaii time (HST = UTC-10, no daylight saving).
-function parseHstString(s) {
+// With time_zone=gmt NOAA returns UTC wall-clock strings ("2026-06-08 14:30");
+// parse straight to a UTC instant. Callers format in the spot's timezone.
+function parseUtcString(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/.exec(s.trim());
   if (!m) return new Date(s);
   const [, y, mo, d, h, mi] = m.map(Number);
-  return new Date(Date.UTC(y, mo - 1, d, h, mi) + 10 * 3600 * 1000);
+  return new Date(Date.UTC(y, mo - 1, d, h, mi));
 }
 
 /**
@@ -48,13 +48,13 @@ export async function getTides(station, days = 2) {
   ]);
 
   const highsLows = (hilo.data.predictions || []).map((p) => ({
-    time: parseHstString(p.t),
+    time: parseUtcString(p.t),
     heightFt: parseFloat(p.v),
     type: p.type, // "H" or "L"
   }));
 
   const curve = (hourly.data.predictions || []).map((p) => ({
-    time: parseHstString(p.t),
+    time: parseUtcString(p.t),
     heightFt: parseFloat(p.v),
   }));
 

@@ -11,16 +11,17 @@ const M_TO_FT = 3.28084;
 const FORECAST_DAYS = 7;
 const cToF = (c) => (c == null ? null : Math.round((c * 9) / 5 + 32));
 
-// Open-Meteo returns local wall-clock ISO strings (no offset) for the
-// requested timezone. Hawaii is UTC-10 with no daylight saving.
-function parseHst(iso) {
+// Open-Meteo returns local wall-clock ISO strings (no offset) for the requested
+// timezone; convert to a true UTC instant with the response's utc_offset_seconds
+// (which already accounts for daylight saving), so any timezone works.
+function parseLocal(iso, offsetSec) {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
   if (!m) return new Date(iso);
   const [, y, mo, d, h, mi] = m.map(Number);
-  return new Date(Date.UTC(y, mo - 1, d, h, mi) + 10 * 3600 * 1000);
+  return new Date(Date.UTC(y, mo - 1, d, h, mi) - offsetSec * 1000);
 }
 
-function marineUrl(lat, lng) {
+function marineUrl(lat, lng, tz) {
   const p = new URLSearchParams({
     latitude: lat,
     longitude: lng,
@@ -39,13 +40,13 @@ function marineUrl(lat, lng) {
       "wind_wave_direction",
       "sea_surface_temperature",
     ].join(","),
-    timezone: "Pacific/Honolulu",
+    timezone: tz,
     forecast_days: String(FORECAST_DAYS),
   });
   return `https://marine-api.open-meteo.com/v1/marine?${p.toString()}`;
 }
 
-function weatherUrl(lat, lng) {
+function weatherUrl(lat, lng, tz) {
   const p = new URLSearchParams({
     latitude: lat,
     longitude: lng,
@@ -54,7 +55,7 @@ function weatherUrl(lat, lng) {
       "temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
-    timezone: "Pacific/Honolulu",
+    timezone: tz,
     forecast_days: String(FORECAST_DAYS),
   });
   return `https://api.open-meteo.com/v1/forecast?${p.toString()}`;
@@ -74,14 +75,15 @@ const peakOr = (...vals) => vals.find((v) => v != null) ?? null;
  * (the direction waves come FROM), temps °F.
  * `swell*` = groundswell train, `windWave*` = local wind sea.
  */
-export async function getOcean(lat, lng) {
+export async function getOcean(lat, lng, tz = "Pacific/Honolulu") {
   const [marine, weather] = await Promise.all([
-    fetchJSON(marineUrl(lat, lng), `marine:${lat},${lng}`),
-    fetchJSON(weatherUrl(lat, lng), `weather:${lat},${lng}`),
+    fetchJSON(marineUrl(lat, lng, tz), `marine:${lat},${lng},${tz}`),
+    fetchJSON(weatherUrl(lat, lng, tz), `weather:${lat},${lng},${tz}`),
   ]);
 
   const mh = marine.data.hourly || {};
   const wh = weather.data.hourly || {};
+  const off = marine.data.utc_offset_seconds ?? weather.data.utc_offset_seconds ?? 0;
 
   // Index weather by timestamp so we merge by time, not by array position.
   const wIndex = new Map();
@@ -90,7 +92,7 @@ export async function getOcean(lat, lng) {
   const hourly = (mh.time || []).map((t, i) => {
     const wi = wIndex.has(t) ? wIndex.get(t) : i;
     return {
-      time: parseHst(t),
+      time: parseLocal(t, off),
       waveFt: ft(mh.wave_height?.[i]),
       wavePeriod: peakOr(mh.wave_peak_period?.[i], mh.wave_period?.[i]),
       waveDir: mh.wave_direction?.[i] ?? null,
