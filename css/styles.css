@@ -703,7 +703,7 @@ main { padding-top: 18px; }
 
 @media (min-width: 900px) {
   .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .now-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .now-cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
 .beach-brief {

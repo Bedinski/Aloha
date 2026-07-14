@@ -339,6 +339,7 @@ function renderNowCards(ocean, tides) {
 
   $("#now-cards").innerHTML = [
     card("🌡️", "Air", temp(cur.tempF), "air temp", "#f97362"),
+    card("💧", "Water", temp(h.waterTempF), "sea temp", "#0284c7"),
     card("🌊", "Surf", hgt(waterWave), waveDesc(waterWave), "#0d9488"),
     card("💨", "Wind", spd(cur.windMph), `${compass(cur.windDir)} · ${windDesc(cur.windMph)}`, "#0ea5e9"),
     card("🔆", "UV", cur.uv != null ? Math.round(cur.uv) : "—", uv.cat, "#f59e0b"),
