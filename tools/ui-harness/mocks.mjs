@@ -90,11 +90,29 @@ function placesForecast(url) {
     daily,
   };
 }
+// Hourly drill-down for one destination (7 days x 24 h).
+function placesHourly(url) {
+  const lat = parseFloat((url.match(/latitude=([-\d.]+)/) || [])[1] || "21.3");
+  const k = Math.min(5, Math.max(0, Math.round((lat - 21.2) * 10)));
+  const CODES = [0, 1, 2, 3, 80, 61, 95];
+  const h = { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [], wind_speed_10m: [] };
+  for (let i = 0; i < 168; i++) {
+    const hr = i % 24;
+    h.time.push(isoT(i, "T"));
+    h.temperature_2m.push(Math.round(78 - k + 6 * Math.sin(((hr - 15) / 24) * Math.PI * 2)));
+    h.weather_code.push(CODES[(k + Math.floor(i / 3)) % CODES.length]);
+    h.precipitation_probability.push(Math.min(95, 8 + k * 10 + (hr % 7) * 5));
+    h.wind_speed_10m.push(Math.round(7 + k + 4 * Math.sin(i / 5)));
+  }
+  return { utc_offset_seconds: HON_OFFSET, hourly: h };
+}
 function mockFor(url) {
   if (url.includes("marine-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ utc_offset_seconds: HON_OFFSET, hourly: marineHourly }) };
   if (url.includes("air-quality-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ hourly: airHourly }) };
   if (url.includes("api.open-meteo.com/v1/forecast") && url.includes("daily="))
     return { ct: "application/json", body: JSON.stringify(placesForecast(url)) };
+  if (url.includes("api.open-meteo.com/v1/forecast") && url.includes("weather_code"))
+    return { ct: "application/json", body: JSON.stringify(placesHourly(url)) };
   if (url.includes("api.open-meteo.com/v1/forecast")) return { ct: "application/json", body: JSON.stringify({
     utc_offset_seconds: HON_OFFSET,
     current: { temperature_2m: 83, wind_speed_10m: 9, wind_direction_10m: 60, wind_gusts_10m: 17, uv_index: 8 }, hourly: wxHourly }) };

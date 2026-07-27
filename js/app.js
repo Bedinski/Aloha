@@ -7,7 +7,7 @@ import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
 import { jellyfishHtml } from "./jellyfish.js";
 import { getAir, airHtml } from "./air.js";
-import { getPlaces, placesHtml } from "./places.js";
+import { getPlaces, renderPlaces } from "./places.js";
 import { hgt, temp, spd, hVal, hUnit, initSettings } from "./units.js";
 import { getRegion, initRegionToggle } from "./regions.js";
 
@@ -509,7 +509,7 @@ async function loadPlaces() {
   if (!el || !region.places) return;
   el.innerHTML = `<p class="muted small">Loading…</p>`;
   lastPlaces = await getPlaces(region.places, TZ());
-  el.innerHTML = placesHtml(lastPlaces);
+  renderPlaces(el, lastPlaces, TZ());
 }
 
 // Vog / air quality (Open-Meteo Air Quality, keyless) — independent feed.
@@ -606,7 +606,7 @@ function applyUnits() {
     renderSurf(ocean);
   }
   renderBuoy(current.buoy); // buoy height re-renders (in-memory cache → instant)
-  if (lastPlaces) $("#places").innerHTML = placesHtml(lastPlaces); // temps only
+  if (lastPlaces) renderPlaces($("#places"), lastPlaces, TZ()); // temps only
 }
 
 function init() {

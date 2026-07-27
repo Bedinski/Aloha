@@ -1129,6 +1129,23 @@ main { padding-top: 18px; }
   background: var(--card);
   padding-right: 8px !important;
 }
+/* The place cell is a toggle: tap it to expand that spot's week + hours. */
+.pm-rowbtn {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.pm-chev { color: var(--muted); font-size: 0.8rem; line-height: 1.5; }
+.pm-row.open .pm-chev { color: var(--accent); }
 .pm-name {
   display: block;
   font-size: 0.85rem;
@@ -1151,6 +1168,71 @@ main { padding-top: 18px; }
 .pm-lo { display: block; font-size: 0.78rem; color: var(--muted); }
 .pm-rain { display: block; font-size: 0.75rem; color: var(--muted); min-height: 1em; }
 .pm-none { font-size: 0.8rem; color: var(--muted); }
+
+/* ---- Expanded detail: day chooser + hourly table ---- */
+.pm-detail {
+  text-align: left !important;
+  padding: 12px 4px 14px !important;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .pm-detail { background: rgba(14, 165, 233, 0.05); }
+}
+.pm-detail-title { margin: 0 0 2px; font-size: 0.98rem; line-height: 1.3; }
+.pm-detail-sum { margin: 0 0 10px; font-size: 0.82rem; color: var(--muted); }
+.pm-daystrip { gap: 8px; }
+.pm-daybtn {
+  flex: 0 0 auto;
+  width: 76px;
+  min-height: 44px;
+  padding: 7px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.pm-daybtn.active { outline: 2px solid var(--accent); outline-offset: -1px; }
+.pm-db-day { display: block; font-size: 0.78rem; font-weight: 700; }
+.pm-db-date { display: block; font-size: 0.75rem; color: var(--muted); }
+.pm-db-icon { display: block; font-size: 1.05rem; margin: 2px 0; }
+.pm-db-temp { display: block; font-size: 0.78rem; font-weight: 700; }
+.pm-db-temp span { font-weight: 500; color: var(--muted); }
+/* Hourly rows scroll inside the panel rather than stretching the page. */
+.pm-hours { max-height: 340px; overflow-y: auto; margin-top: 4px; }
+/* Fixed columns so the row fits the panel — long sky labels wrap instead of
+   pushing the wind column out of view. */
+.pm-hours table.hourly { margin-top: 0; table-layout: fixed; }
+.pm-hours table.hourly th:nth-child(1), .pm-hours table.hourly td:nth-child(1) { width: 24%; }
+.pm-hours table.hourly th:nth-child(2), .pm-hours table.hourly td:nth-child(2) { width: 26%; }
+.pm-hours table.hourly th:nth-child(3), .pm-hours table.hourly td:nth-child(3) { width: 16%; }
+.pm-hours table.hourly th:nth-child(4), .pm-hours table.hourly td:nth-child(4) { width: 15%; }
+.pm-hours table.hourly th:nth-child(5), .pm-hours table.hourly td:nth-child(5) { width: 19%; }
+.pm-hours thead th { position: sticky; top: 0; background: var(--card); z-index: 1; }
+.pm-hr-time { white-space: nowrap; font-weight: 600; }
+.pm-hr-wind { white-space: nowrap; }
+/* The hour you're actually in, so today's list reads from "now" down. */
+.pm-hours tr.pm-now { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .pm-hours tr.pm-now { background: rgba(14, 165, 233, 0.12); }
+}
+/* Tinted rather than solid: white on --accent is only 4.1:1, under AA. */
+.pm-nowtag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .pm-nowtag { background: rgba(2, 132, 199, 0.22); }
+}
 
 /* Today's column gets a subtle tint so the week reads left-to-right. */
 .places-matrix .pm-today { background: color-mix(in srgb, var(--accent) 9%, transparent); }
