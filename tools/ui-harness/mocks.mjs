@@ -68,9 +68,30 @@ function buoyJsonp(url) {
     rows: [[sid, new Date(Date.now() - 22 * 60000).toISOString(), 0.82, 13.5, 201]] } };
   return `${cb}(${JSON.stringify(table)});`;
 }
+// Around-the-island panel: compact current+daily payload, varied per latitude
+// so the five destination cards don't all render identically.
+function placesForecast(url) {
+  const lat = parseFloat((url.match(/latitude=([-\d.]+)/) || [])[1] || "21.3");
+  const k = Math.min(5, Math.max(0, Math.round((lat - 21.2) * 10)));
+  const code = [0, 1, 2, 3, 80, 61][k % 6];
+  const now = 84 - k;
+  return {
+    utc_offset_seconds: HON_OFFSET,
+    current: { temperature_2m: now, weather_code: code },
+    daily: {
+      time: [isoT(0, "T").slice(0, 10), isoT(24, "T").slice(0, 10)],
+      weather_code: [code, [2, 3, 80, 1, 0, 61][(k + 2) % 6]],
+      temperature_2m_max: [now + 3, now + 2],
+      temperature_2m_min: [now - 10, now - 9],
+      precipitation_probability_max: [10 + k * 12, 15 + k * 8],
+    },
+  };
+}
 function mockFor(url) {
   if (url.includes("marine-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ utc_offset_seconds: HON_OFFSET, hourly: marineHourly }) };
   if (url.includes("air-quality-api.open-meteo.com")) return { ct: "application/json", body: JSON.stringify({ hourly: airHourly }) };
+  if (url.includes("api.open-meteo.com/v1/forecast") && url.includes("daily="))
+    return { ct: "application/json", body: JSON.stringify(placesForecast(url)) };
   if (url.includes("api.open-meteo.com/v1/forecast")) return { ct: "application/json", body: JSON.stringify({
     utc_offset_seconds: HON_OFFSET,
     current: { temperature_2m: 83, wind_speed_10m: 9, wind_direction_10m: 60, wind_gusts_10m: 17, uv_index: 8 }, hourly: wxHourly }) };

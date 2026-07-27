@@ -7,7 +7,7 @@
 //     localStorage "last good" fallback, so we deliberately do NOT cache those
 //     API responses here (avoids serving stale data twice over).
 
-const CACHE = "aloha-shell-v13";
+const CACHE = "aloha-shell-v14";
 const SHELL = [
   "./",
   "./index.html",
@@ -21,6 +21,7 @@ const SHELL = [
   "./js/regions.js",
   "./js/jellyfish.js",
   "./js/air.js",
+  "./js/places.js",
   "./js/sun.js",
   "./js/tides.js",
   "./js/surf.js",

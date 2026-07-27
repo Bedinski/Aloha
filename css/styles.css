@@ -1083,6 +1083,61 @@ main { padding-top: 18px; }
   color: var(--ink);
 }
 
+/* ---------- Around-the-island multi-place forecast ---------- */
+.places-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
+}
+.place-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--card)), var(--card));
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .place-card { background: var(--card); }
+}
+.place-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.place-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.place-now {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.place-icon { font-size: 1.35rem; line-height: 1; }
+.place-temp { font-size: 1.5rem; font-weight: 800; color: var(--ink); }
+.place-cond {
+  font-size: 0.85rem;
+  color: var(--ink);
+  margin-top: 2px;
+}
+.place-meta,
+.place-tmw {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+/* Label and value wrap as whole units, never mid-temperature. */
+.place-tmw {
+  border-top: 1px solid var(--line);
+  padding-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+.place-tmw b { font-weight: 600; color: var(--ink); white-space: nowrap; }
+
 /* ---------- Region toggle (Hawaiʻi / California) ---------- */
 .region-toggle {
   display: flex;

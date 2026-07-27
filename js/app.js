@@ -7,6 +7,7 @@ import { lineChart } from "./chart.js";
 import { renderAlerts, renderBuoy } from "./feeds.js";
 import { jellyfishHtml } from "./jellyfish.js";
 import { getAir, airHtml } from "./air.js";
+import { getPlaces, placesHtml } from "./places.js";
 import { hgt, temp, spd, hVal, hUnit, initSettings } from "./units.js";
 import { getRegion, initRegionToggle } from "./regions.js";
 
@@ -295,6 +296,7 @@ const $ = (sel) => document.querySelector(sel);
 let current = LOCATIONS[0];
 let customCoords = null; // {lat, lng} from geolocation
 let last = { ocean: null, tides: null, sun: null }; // for instant unit re-render
+let lastPlaces = null; // around-the-island rows, kept for unit re-render
 
 function activeCoords() {
   return customCoords || { lat: current.lat, lng: current.lng };
@@ -498,6 +500,16 @@ async function load() {
   const jelly = $("#jelly");
   if (jelly && region.jellyfish) jelly.innerHTML = jellyfishHtml(); // HI only
   loadAir();
+  loadPlaces();
+}
+
+// Multi-stop "around the island" forecast — independent feed, region-optional.
+async function loadPlaces() {
+  const el = $("#places");
+  if (!el || !region.places) return;
+  el.innerHTML = `<p class="muted small">Loading…</p>`;
+  lastPlaces = await getPlaces(region.places, TZ());
+  el.innerHTML = placesHtml(lastPlaces);
 }
 
 // Vog / air quality (Open-Meteo Air Quality, keyless) — independent feed.
@@ -532,6 +544,13 @@ function applyRegionContent() {
   const set = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
   const panel = document.getElementById("jelly-panel");
   if (panel) panel.hidden = !region.jellyfish;
+  const places = document.getElementById("places-panel");
+  if (places) places.hidden = !region.places;
+  if (region.places) {
+    const t = $("#places-title");
+    if (t) t.textContent = region.placesTitle;
+    set("#places-note", region.placesNote || "");
+  }
   const airH = document.querySelector("#air-panel h2");
   if (airH) airH.textContent = region.airTitle;
   set("#air-note", region.airNote);
@@ -550,6 +569,7 @@ function switchRegion() {
   LOCATIONS = region.locations;
   current = LOCATIONS[0];
   customCoords = null;
+  lastPlaces = null; // drop the other region's cards
   refreshLocationOptions();
   applyRegionContent();
   load();
@@ -586,6 +606,7 @@ function applyUnits() {
     renderSurf(ocean);
   }
   renderBuoy(current.buoy); // buoy height re-renders (in-memory cache → instant)
+  if (lastPlaces) $("#places").innerHTML = placesHtml(lastPlaces); // temps only
 }
 
 function init() {

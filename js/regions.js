@@ -23,6 +23,17 @@ export const REGIONS = {
       { href: "https://www.weather.gov/hfo/SRF", title: "NWS Hawaii surf forecast", sub: "Official shore-by-shore surf outlook" },
       { href: "https://www.honolulu.gov/hosd/beach-signs/", title: "Beach sign guide", sub: "Honolulu Ocean Safety warnings" },
     ],
+    // Multi-stop forecast panel: popular Oʻahu destinations side by side, so a
+    // day can be planned across the island. Omit `places` and the panel hides.
+    placesTitle: "🌦️ Around Oʻahu",
+    placesNote: "Today's forecast at popular stops — the windward and central spots often differ from Waikīkī.",
+    places: [
+      { id: "waikiki", name: "Waikīkī", note: "South shore", lat: 21.2762, lng: -157.8267 },
+      { id: "pearl-harbor", name: "Pearl Harbor", note: "ʻAiea · memorial", lat: 21.367, lng: -157.939 },
+      { id: "hanauma", name: "Hanauma Bay", note: "East side · snorkel", lat: 21.269, lng: -157.6938 },
+      { id: "pcc", name: "Polynesian Cultural Center", note: "Lāʻie · windward", lat: 21.64, lng: -157.923 },
+      { id: "dole", name: "Dole Plantation", note: "Wahiawā · central", lat: 21.5256, lng: -158.0378 },
+    ],
     locations: [
       { id: "waikiki", name: "Waikiki Beach", lat: 21.2762, lng: -157.8267, station: 1612340, buoy: "233", alertRegion: "Oahu" },
       { id: "kaimana", name: "Kaimana / Sans Souci", lat: 21.266, lng: -157.823, station: 1612340, buoy: "233", alertRegion: "Oahu" },
