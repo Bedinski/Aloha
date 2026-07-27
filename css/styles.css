@@ -1083,60 +1083,82 @@ main { padding-top: 18px; }
   color: var(--ink);
 }
 
-/* ---------- Around-the-island multi-place forecast ---------- */
-.places-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
-  gap: 10px;
+/* ---------- Around-the-island 7-day forecast matrix ----------
+   Places down the side, days across. The day columns stay narrow so all seven
+   fit a phone; the wrapper scrolls only if a translation/large font pushes
+   past the viewport, and the place column stays pinned while it does. */
+.places-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
 }
-.place-card {
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--card)), var(--card));
+.places-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
 }
-@supports not (background: color-mix(in srgb, red, blue)) {
-  .place-card { background: var(--card); }
+.places-matrix th,
+.places-matrix td {
+  padding: 6px 2px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line);
 }
-.place-name {
+.places-matrix tbody tr:last-child th,
+.places-matrix tbody tr:last-child td { border-bottom: 0; }
+.places-matrix thead th {
+  font-size: 0.75rem;
   font-weight: 700;
-  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.2;
+  padding-bottom: 8px;
+}
+.places-matrix thead .pm-wd { display: block; color: var(--ink); }
+.places-matrix thead .pm-md { display: block; font-weight: 500; font-size: 0.75rem; }
+.places-matrix thead .pm-today .pm-md { color: var(--ink); font-weight: 600; }
+
+/* Place column: pinned left so rows stay identifiable while scrolled. */
+.pm-place {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 30%;
+  min-width: 94px;
+  text-align: left !important;
+  background: var(--card);
+  padding-right: 8px !important;
+}
+.pm-name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
   line-height: 1.25;
   color: var(--ink);
 }
-.place-note {
-  font-size: 0.78rem;
+.pm-sub {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 1px;
 }
-.place-now {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+
+/* Day cells: icon over high / low / rain, each on its own line. */
+.pm-cell { line-height: 1.25; }
+.pm-icon { display: block; font-size: 1.05rem; }
+.pm-hi { display: block; font-size: 0.82rem; font-weight: 700; color: var(--ink); }
+.pm-lo { display: block; font-size: 0.78rem; color: var(--muted); }
+.pm-rain { display: block; font-size: 0.75rem; color: var(--muted); min-height: 1em; }
+.pm-none { font-size: 0.8rem; color: var(--muted); }
+
+/* Today's column gets a subtle tint so the week reads left-to-right. */
+.places-matrix .pm-today { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+/* Today's column runs a little wider so its "Today" label never crowds. */
+.places-matrix thead th.pm-today { border-radius: 8px 8px 0 0; width: 14%; }
+@supports not (background: color-mix(in srgb, red, blue)) {
+  .places-matrix .pm-today { background: rgba(14, 165, 233, 0.09); }
 }
-.place-icon { font-size: 1.35rem; line-height: 1; }
-.place-temp { font-size: 1.5rem; font-weight: 800; color: var(--ink); }
-.place-cond {
-  font-size: 0.85rem;
-  color: var(--ink);
-  margin-top: 2px;
-}
-.place-meta,
-.place-tmw {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin-top: 4px;
-}
-/* Label and value wrap as whole units, never mid-temperature. */
-.place-tmw {
-  border-top: 1px solid var(--line);
-  padding-top: 5px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-}
-.place-tmw b { font-weight: 600; color: var(--ink); white-space: nowrap; }
 
 /* ---------- Region toggle (Hawaiʻi / California) ---------- */
 .region-toggle {

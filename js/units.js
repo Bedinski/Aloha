@@ -36,9 +36,14 @@ export function hgtRange(loFt, hiFt) {
 }
 
 // ---- temperature (canonical °F) ----
+export const tempUnit = () => (u.temp === "C" ? "°C" : "°F");
+// Rounded value in the active unit, no suffix — for dense views (e.g. the
+// multi-day forecast grid) that label the unit once instead of per cell.
+export const tempVal = (f) =>
+  f == null ? null : Math.round(u.temp === "C" ? ((f - 32) * 5) / 9 : f);
 export function temp(f) {
   if (f == null) return "—";
-  return u.temp === "C" ? `${Math.round((f - 32) * 5 / 9)}°C` : `${Math.round(f)}°F`;
+  return `${tempVal(f)}${tempUnit()}`;
 }
 
 // ---- wind speed (canonical mph) ----

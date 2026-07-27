@@ -75,16 +75,19 @@ function placesForecast(url) {
   const k = Math.min(5, Math.max(0, Math.round((lat - 21.2) * 10)));
   const code = [0, 1, 2, 3, 80, 61][k % 6];
   const now = 84 - k;
+  const CODES = [0, 1, 2, 3, 80, 61, 95];
+  const daily = { time: [], weather_code: [], temperature_2m_max: [], temperature_2m_min: [], precipitation_probability_max: [] };
+  for (let d = 0; d < 7; d++) {
+    daily.time.push(isoT(d * 24, "T").slice(0, 10));
+    daily.weather_code.push(d === 0 ? code : CODES[(k + d * 2) % CODES.length]);
+    daily.temperature_2m_max.push(now + 3 - (d % 3));
+    daily.temperature_2m_min.push(now - 10 - (d % 2));
+    daily.precipitation_probability_max.push(Math.min(95, 10 + k * 12 + d * 4));
+  }
   return {
     utc_offset_seconds: HON_OFFSET,
     current: { temperature_2m: now, weather_code: code },
-    daily: {
-      time: [isoT(0, "T").slice(0, 10), isoT(24, "T").slice(0, 10)],
-      weather_code: [code, [2, 3, 80, 1, 0, 61][(k + 2) % 6]],
-      temperature_2m_max: [now + 3, now + 2],
-      temperature_2m_min: [now - 10, now - 9],
-      precipitation_probability_max: [10 + k * 12, 15 + k * 8],
-    },
+    daily,
   };
 }
 function mockFor(url) {

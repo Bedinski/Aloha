@@ -26,7 +26,7 @@ export const REGIONS = {
     // Multi-stop forecast panel: popular Oʻahu destinations side by side, so a
     // day can be planned across the island. Omit `places` and the panel hides.
     placesTitle: "🌦️ Around Oʻahu",
-    placesNote: "Today's forecast at popular stops — the windward and central spots often differ from Waikīkī.",
+    placesNote: "7-day outlook at popular stops — high / low and chance of rain. The windward and central spots often differ from Waikīkī.",
     places: [
       { id: "waikiki", name: "Waikīkī", note: "South shore", lat: 21.2762, lng: -157.8267 },
       { id: "pearl-harbor", name: "Pearl Harbor", note: "ʻAiea · memorial", lat: 21.367, lng: -157.939 },
