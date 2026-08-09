@@ -66,6 +66,7 @@ export const REGIONS = {
       { id: "malibu", name: "Malibu (Surfrider)", lat: 34.0367, lng: -118.6779, station: 9410840, buoy: "028", alertRegion: "Los Angeles" },
       { id: "santa-monica", name: "Santa Monica", lat: 34.0089, lng: -118.4973, station: 9410840, buoy: "028", alertRegion: "Los Angeles" },
       { id: "playa-del-rey", name: "Playa del Rey", lat: 33.9564, lng: -118.4483, station: 9410840, buoy: "028", alertRegion: "Los Angeles" },
+      { id: "el-porto", name: "El Porto", lat: 33.9008, lng: -118.421, station: 9410840, buoy: "028", alertRegion: "Los Angeles" },
       { id: "manhattan-beach", name: "Manhattan Beach", lat: 33.8847, lng: -118.4109, station: 9410840, buoy: "028", alertRegion: "Los Angeles" },
       { id: "huntington", name: "Huntington Beach", lat: 33.6553, lng: -118.0035, station: 9410583, buoy: "092", alertRegion: "Orange County" },
       { id: "newport", name: "Newport Beach", lat: 33.6189, lng: -117.9298, station: 9410583, buoy: "092", alertRegion: "Orange County" },
